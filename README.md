@@ -8,7 +8,8 @@ argument 3: parameter data
 DATA: MNIST (partial data) 
 
 
-# version 0.1 (2015. 07. 12)
+######
+version 0.1 (2015. 07. 12)
 I use the random number generator mt19937 from Boost library
 for weights and bias initailization and stochastic gradient
 descent.
