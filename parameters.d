@@ -18,7 +18,7 @@
 //	C = target * log activation + (1 - target) * log (1 - activation) 
 Quadratic
 // Regularization parameter
-0.0
+0.001
 // Mini batch size
 10
 // Sigmoid type (Binary or Bipolar)
