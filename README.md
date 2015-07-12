@@ -4,7 +4,7 @@ Execute
 Usage: ./nn train.d test.d parameter.d
 argument 1: train data (optional including validation data)
 argument 2: test data
-argument 3: parameter data
+argument 3: parameters data
 DATA: MNIST (partial data) 
 
 
