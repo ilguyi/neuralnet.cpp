@@ -1,13 +1,13 @@
 // Reading Parameters setting file
 // DO NOT ERASE ALL ANNOTATION
 // Number of training data
-180000
+250
 // Number of input data dimension
 784
 // Number of validation data
-30000
+50
 // Number of hidden nodes in each hidden layer n_h1, n_h2, n_h3, ...
-500
+10
 // Number of class
 10
 // Learning rate
@@ -26,6 +26,6 @@ Binary
 // sigmoid_alpha
 1.0
 // iteration max step
-1
+10
 // Initialize type (gaussian or uniform)
 gaussian
