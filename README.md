@@ -17,7 +17,8 @@ Il Gu Yi
 - Multiple hidden layer
 - Validation data (extracting randomly from train data)
 - Two cost function (cross entropy or quadratic error)
-- Apply regularization (weight decay)
+- Apply L2-regularization (weight decay)
+- Adjust mini-batch size
 - Two sigmoid function type (binary or bipolar)
 - Softmax activation at output layer
 
@@ -33,7 +34,8 @@ for various calculation based on matrix and vector.
 - Multiple hidden layer
 - Validation data (extracting randomly from train data)
 - Two cost function (cross entropy or quadratic error)
-- Apply regularization (weight decay)
+- Apply L2-regularization (weight decay)
+- Adjust mini-batch size
 - Two sigmoid function type (binary or bipolar)
 
 
