@@ -37,6 +37,7 @@ typedef struct NeuralNetworkParameters {
         cost(CrossEntropy),
         regularization(0.0),
         minibatchSize(1),
+        softmax(false),
         shape_sigmoid(Binary),
         sigmoid_alpha(1.0),
         maxStep(100) {
@@ -54,6 +55,7 @@ typedef struct NeuralNetworkParameters {
     CostFunction_Type cost;
     double regularization;
     unsigned minibatchSize;
+    bool softmax;
     df::Sigmoid_Type shape_sigmoid;
     double sigmoid_alpha;
     unsigned maxStep;
@@ -65,12 +67,12 @@ class NeuralNetworks {
         NeuralNetworks();
         NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
             const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
-            const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
+            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
 
         void ReadParameters(const string& filename);
         void ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
             const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
-            const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
+            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
 
@@ -125,6 +127,7 @@ class NeuralNetworks {
         void ActivationFunction(Vector& activation_variable, Vector& sum_variable);
         void SigmoidFuntion(Vector& activation, Vector& summation);
         Vector DerivativeSigmoid(Vector& x);
+        void SoftmaxActivation(Vector& activation, Vector& summation);
 
         template<typename dataType>
         void BackPropagation(const arma::Row<dataType>& x, const arma::irowvec& t);
@@ -156,7 +159,7 @@ class NeuralNetworks {
 
 NeuralNetworks::NeuralNetworks() {};
 NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
-    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_,
+    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
     nnParas.N = N_;                                nnParas.dimension = dimension_;
@@ -167,6 +170,7 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, c
     nnParas.cost = cost_;
     nnParas.regularization = regularization_;
     nnParas.minibatchSize = minibatchSize_;
+    nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
     nnParas.sigmoid_alpha = sigmoid_alpha_;        nnParas.maxStep = maxStep_;
 }
@@ -216,6 +220,15 @@ void NeuralNetworks::ReadParameters(const string& filename) {
     nnParas.minibatchSize = stoi(s);
 
     getline(fin, s);    getline(fin, s);
+
+    if ( s == "true"  ||  s == "T"  ||  s == "True" ) nnParas.softmax = true;
+    else if ( s == "false"  ||  s == "F"  ||  s == "False" ) nnParas.softmax = false;
+    else {
+        cout << "Usage: Wrong Softmax boolean type" << endl;
+        cout << "you must type true or false" << endl;
+    }
+
+    getline(fin, s);    getline(fin, s);
     if ( s == "Binary" ) nnParas.shape_sigmoid = Binary;
     else if ( s == "Bipolar" ) nnParas.shape_sigmoid = Bipolar;
     else {
@@ -233,7 +246,7 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 
 
 void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
-    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_,
+    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
     nnParas.N = N_;                                nnParas.dimension = dimension_;
@@ -244,6 +257,7 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimen
     nnParas.cost = cost_;
     nnParas.regularization = regularization_;
     nnParas.minibatchSize = minibatchSize_;
+    nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
     nnParas.sigmoid_alpha = sigmoid_alpha_;        nnParas.maxStep = maxStep_;
 }
@@ -268,6 +282,9 @@ void NeuralNetworks::PrintParameters() const {
 
     cout << "regularization rate: "                << nnParas.regularization << endl;
     cout << "minibatch size: "                     << nnParas.minibatchSize << endl;
+
+    if ( nnParas.softmax ) cout << "use of softmax: Yes" << endl;
+    else cout << "use of softmax: No" << endl;
 
     if ( nnParas.shape_sigmoid == Binary ) cout << "sigmoid type: Binary" << endl;
     else cout << "sigmoid type: Bipolar" << endl;
@@ -297,6 +314,9 @@ void NeuralNetworks::WriteParameters(const string& filename) const {
 
     fsave << "regularization rate: "            << nnParas.regularization << endl;
     fsave << "minibatch size: "                     << nnParas.minibatchSize << endl;
+
+    if ( nnParas.softmax ) fsave << "use of softmax: Yes" << endl;
+    else fsave << "use of softmax: No" << endl;
 
     if ( nnParas.shape_sigmoid == Binary ) fsave << "sigmoid type: Binary" << endl;
     else fsave << "sigmoid type: Bipolar" << endl;
@@ -774,7 +794,11 @@ void NeuralNetworks::FeedForward(const arma::Row<dataType>& x) {
     }
 
     summation(nnParas.n_hlayer) = weight(nnParas.n_hlayer) * activation(nnParas.n_hlayer-1) + bias(nnParas.n_hlayer);
-    ActivationFunction(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
+    if ( nnParas.softmax )
+        SoftmaxActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
+    else
+        ActivationFunction(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
+
 
 
 //  cout << summation << endl;
@@ -808,6 +832,14 @@ Vector NeuralNetworks::DerivativeSigmoid(Vector& x) {
 
     return temp;
 }
+
+
+
+void NeuralNetworks::SoftmaxActivation(Vector& activation, Vector& summation) {
+
+    activation = exp(summation) / arma::sum(exp(summation));
+}
+
 
 
 

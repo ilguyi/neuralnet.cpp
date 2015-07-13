@@ -21,6 +21,8 @@ Quadratic
 0.001
 // Mini batch size
 10
+// Softmax Boolean
+True
 // Sigmoid type (Binary or Bipolar)
 Binary
 // sigmoid_alpha

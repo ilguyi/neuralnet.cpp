@@ -84,7 +84,7 @@ int main (int argc, char** argv)
     nn.Initialize("gaussian");
 
 
-    for (unsigned iter=0; iter<100; iter++) {
+    for (unsigned iter=0; iter<10; iter++) {
 
 //      nn.Training(normMNIST, iter);
         nn.Training(normMNIST, validMNIST, iter);

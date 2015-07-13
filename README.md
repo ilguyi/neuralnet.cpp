@@ -13,12 +13,13 @@ Il Gu Yi
 - DATA: MNIST (partial data) 
 
 
-# What program can do (version 0.1) (2015. 07. 12.)
-- Multi hidden layer
+# What program can do (version 0.2) (2015. 07. 13.)
+- Multiple hidden layer
 - Validation data (extracting randomly from train data)
 - Two cost function (cross entropy or quadratic error)
 - Apply regularization (weight decay)
 - Two sigmoid function type (binary or bipolar)
+- Softmax activation at output layer
 
 
 # Requirement
@@ -26,4 +27,13 @@ Il Gu Yi
 for weights and bias initialization and stochastic gradient descent.
 - I implement my program using Armadillo linear algebra library in C++
 for various calculation based on matrix and vector.
+
+
+# Version 0.1 (2015. 07. 12.)
+- Multiple hidden layer
+- Validation data (extracting randomly from train data)
+- Two cost function (cross entropy or quadratic error)
+- Apply regularization (weight decay)
+- Two sigmoid function type (binary or bipolar)
+
 
