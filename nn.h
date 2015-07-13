@@ -843,7 +843,6 @@ void NeuralNetworks::SoftmaxActivation(Vector& activation, Vector& summation) {
 
 
 
-
 template<typename dataType>
 void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::irowvec& t) {
 
