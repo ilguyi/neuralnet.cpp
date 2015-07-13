@@ -30,6 +30,9 @@ for weights and bias initialization and stochastic gradient descent.
 for various calculation based on matrix and vector.
 
 
+# Version 0.2 (2015. 07. 13.)
+- Softmax activation at output layer
+
 # Version 0.1 (2015. 07. 12.)
 - Multiple hidden layer
 - Validation data (extracting randomly from train data)
