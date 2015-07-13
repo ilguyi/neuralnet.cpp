@@ -13,10 +13,17 @@ argument 3: parameters data
 DATA: MNIST (partial data) 
 
 
-# version 0.1 (2015. 07. 12)
+# What program can do (version 0.1) (2015. 07. 12.)
+- Multi hidden layer
+- Validation data (extracting randomly from train data)
+- Two cost function (cross entropy or quadratic error)
+- Apply regularization (weight decay)
+- Two sigmoid function type (binary or bipolar)
+
+
+# Requirement
 I use the random number generator mt19937 from Boost library
-for weights and bias initailization and stochastic gradient
-descent.
+for weights and bias initialization and stochastic gradient descent.
 I implement my program using Armadillo linear algebra library in C++
 for various calculation based on matrix and vector.
 
