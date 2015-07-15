@@ -1,3 +1,11 @@
+/***********************************************************
+ * Neural networks for multi-class classification namespace
+ *
+ * 2015. 06.
+ * modified 2015. 07. 15.
+ * by Il Gu Yi
+***********************************************************/
+
 #ifndef NEURAL_NETWORK_H
 #define NEURAL_NETWORK_H
 
@@ -7,8 +15,8 @@
 using namespace std;
 using namespace df;
 
-namespace nn {
 
+namespace nn {
 
 
 typedef arma::field<arma::mat> Weights;
@@ -32,7 +40,7 @@ typedef enum {
 typedef struct NeuralNetworkParameters {
     NeuralNetworkParameters() :
         N(0), dimension(0), N_valid(0),
-        n_output(1),
+        n_class(1),
         learningRate(0.5),
         cost(CrossEntropy),
         regularization(0.0),
@@ -49,7 +57,7 @@ typedef struct NeuralNetworkParameters {
     unsigned dimension;
     unsigned N_valid;
     arma::uvec n_hiddens;
-    unsigned n_output;
+    unsigned n_class;
     unsigned n_hlayer;
     double learningRate;
     CostFunction_Type cost;
@@ -65,29 +73,30 @@ typedef struct NeuralNetworkParameters {
 class NeuralNetworks {
     public:
         NeuralNetworks();
-        NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
+        NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_class_,
             const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
             const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
 
         void ReadParameters(const string& filename);
-        void ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
+        void ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_class_,
             const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
             const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
 
-        unsigned GetN();
-        unsigned GetDimension();
-        unsigned GetN_valid();
-        unsigned GetOutput();
-        df::Sigmoid_Type GetSigmoidType();
-
-
+        unsigned GetN() const;
+        unsigned GetDimension() const;
+        unsigned GetN_valid() const;
+        unsigned GetOutput() const;
+        df::Sigmoid_Type GetSigmoidType() const;
 
         void Initialize(const string& initialize_type);
+
+    private:
         void Initialize_Uniform(Matrix& weight, Vector& bias);
         void Initialize_Gaussian(Matrix& weight, Vector& bias);
 
+    public:
         void PrintWeights() const;
         void PrintBiases() const;
         void PrintResult() const;
@@ -97,17 +106,22 @@ class NeuralNetworks {
 
 //      void ReadResultFile(const string& filename);
 
+    private:
         void NamingFile(string& filename);
         void NamingFileStep(string& filename, const unsigned& step);
 
 
+    public:
         template<typename dataType>
         void Training(df::DataFrame<dataType>& data, unsigned& step);
+    private:
         template<typename dataType>
         void TrainingOneStep(df::DataFrame<dataType>& data);
 
+    public:
         template<typename dataType>
         void Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, unsigned& step);
+    private:
         template<typename dataType>
         void TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid);
 
@@ -124,7 +138,7 @@ class NeuralNetworks {
         template<typename dataType>
         void FeedForward(const arma::Row<dataType>& x);
 
-        void ActivationFunction(Vector& activation_variable, Vector& sum_variable);
+        void ActivationFunction(Vector& activation, Vector& summation);
         void SigmoidFuntion(Vector& activation, Vector& summation);
         Vector DerivativeSigmoid(Vector& x);
         void SoftmaxActivation(Vector& activation, Vector& summation);
@@ -134,13 +148,13 @@ class NeuralNetworks {
         
         void UpdateParameter(const unsigned& minibatchSize);
         
-        void WriteError(const string& filename, const double& MeanSquaredError);
+        void WriteError(const string& filename, const double& error);
         void WriteError(const string& filename, const double& error, const double& valid_error);
 
 
+    public:
         template<typename dataType>
         void Test(df::DataFrame<dataType>& data, arma::uvec& predict, unsigned& step);
-
 
 
     private:
@@ -158,13 +172,13 @@ class NeuralNetworks {
 };
 
 NeuralNetworks::NeuralNetworks() {};
-NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
+NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_class_,
     const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
     nnParas.N = N_;                                nnParas.dimension = dimension_;
     nnParas.N_valid = N_valid_;
-    nnParas.n_hiddens = n_hiddens_;                nnParas.n_output = n_output_;
+    nnParas.n_hiddens = n_hiddens_;                nnParas.n_class = n_class_;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
@@ -199,7 +213,7 @@ void NeuralNetworks::ReadParameters(const string& filename) {
     nnParas.n_hlayer = nnParas.n_hiddens.size();
 
     getline(fin, s);    getline(fin, s);
-    nnParas.n_output = stoi(s);
+    nnParas.n_class = stoi(s);
 
     getline(fin, s);    getline(fin, s);
     nnParas.learningRate = stod(s);
@@ -245,13 +259,13 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 
 
 
-void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_output_,
+void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimension_, const unsigned& N_valid_, const arma::uvec& n_hiddens_, const unsigned& n_class_,
     const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
     nnParas.N = N_;                                nnParas.dimension = dimension_;
     nnParas.N_valid = N_valid_;
-    nnParas.n_hiddens = n_hiddens_;                nnParas.n_output = n_output_;
+    nnParas.n_hiddens = n_hiddens_;                nnParas.n_class = n_class_;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
@@ -263,25 +277,25 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimen
 }
 
 void NeuralNetworks::PrintParameters() const {
-    cout << "##################################" << endl;
-    cout << "##  Neural Networks Parameters  ##" << endl;
-    cout << "##################################" << endl << endl;
-    cout << "N: "                                << nnParas.N << endl;
-    cout << "dimension: "                        << nnParas.dimension << endl;
-    cout << "Number of validation data: "        << nnParas.N_valid << endl;
+    cout << "##################################"    << endl;
+    cout << "##  Neural Networks Parameters  ##"    << endl;
+    cout << "##################################"    << endl << endl;
+    cout << "N: "                                   << nnParas.N << endl;
+    cout << "dimension: "                           << nnParas.dimension << endl;
+    cout << "Number of validation data: "           << nnParas.N_valid << endl;
 
     for (unsigned i=0; i<nnParas.n_hiddens.size(); i++)
         cout << "number of nodes in " << i+1 << " hidden layer: " << nnParas.n_hiddens(i) << endl ;
 
-    cout << "number of output nodes: "            << nnParas.n_output << endl ;
-    cout << "number of hidden layer: "            << nnParas.n_hlayer << endl ;
-    cout << "learning rate: "                    << nnParas.learningRate << endl;
+    cout << "number of class: "                     << nnParas.n_class << endl ;
+    cout << "number of hidden layer: "              << nnParas.n_hlayer << endl ;
+    cout << "learning rate: "                       << nnParas.learningRate << endl;
 
     if ( nnParas.cost == CrossEntropy ) cout << "cost function: Cross Entropy" << endl;
     else cout << "cost function: Quadratic" << endl;
 
-    cout << "regularization rate: "                << nnParas.regularization << endl;
-    cout << "minibatch size: "                     << nnParas.minibatchSize << endl;
+    cout << "regularization rate: "                 << nnParas.regularization << endl;
+    cout << "minibatch size: "                      << nnParas.minibatchSize << endl;
 
     if ( nnParas.softmax ) cout << "use of softmax: Yes" << endl;
     else cout << "use of softmax: No" << endl;
@@ -289,30 +303,30 @@ void NeuralNetworks::PrintParameters() const {
     if ( nnParas.shape_sigmoid == Binary ) cout << "sigmoid type: Binary" << endl;
     else cout << "sigmoid type: Bipolar" << endl;
 
-    cout << "sigmoid alpha: "                    << nnParas.sigmoid_alpha << endl;
-    cout << "max iteration step: "                << nnParas.maxStep << endl << endl;
+    cout << "sigmoid alpha: "                       << nnParas.sigmoid_alpha << endl;
+    cout << "max iteration step: "                  << nnParas.maxStep << endl << endl;
 }
 
 void NeuralNetworks::WriteParameters(const string& filename) const {
     ofstream fsave(filename.c_str());
-    fsave << "##################################" << endl;
-    fsave << "##  Neural Networks Parameters  ##" << endl;
-    fsave << "##################################" << endl << endl;
-    fsave << "N: "                                << nnParas.N << endl;
-    fsave << "dimension: "                        << nnParas.dimension << endl;
-    fsave << "Number of validation data: "        << nnParas.N_valid << endl;
+    fsave << "##################################"   << endl;
+    fsave << "##  Neural Networks Parameters  ##"   << endl;
+    fsave << "##################################"   << endl << endl;
+    fsave << "N: "                                  << nnParas.N << endl;
+    fsave << "dimension: "                          << nnParas.dimension << endl;
+    fsave << "Number of validation data: "          << nnParas.N_valid << endl;
 
     for (unsigned i=0; i<nnParas.n_hiddens.size(); i++)
         fsave << "number of nodes in " << i+1 << " hidden layer: " << nnParas.n_hiddens(i) << endl ;
 
-    fsave << "number of output nodes: "            << nnParas.n_output << endl ;
-    fsave << "number of hidden layer: "            << nnParas.n_hlayer << endl ;
-    fsave << "learning_Rate: "                    << nnParas.learningRate << endl;
+    fsave << "number of class: "                    << nnParas.n_class << endl ;
+    fsave << "number of hidden layer: "             << nnParas.n_hlayer << endl ;
+    fsave << "learning_Rate: "                      << nnParas.learningRate << endl;
 
     if ( nnParas.cost == CrossEntropy ) fsave << "cost function: Cross Entropy" << endl;
     else fsave << "cost function: Quadratic" << endl;
 
-    fsave << "regularization rate: "            << nnParas.regularization << endl;
+    fsave << "regularization rate: "                << nnParas.regularization << endl;
     fsave << "minibatch size: "                     << nnParas.minibatchSize << endl;
 
     if ( nnParas.softmax ) fsave << "use of softmax: Yes" << endl;
@@ -321,17 +335,17 @@ void NeuralNetworks::WriteParameters(const string& filename) const {
     if ( nnParas.shape_sigmoid == Binary ) fsave << "sigmoid type: Binary" << endl;
     else fsave << "sigmoid type: Bipolar" << endl;
 
-    fsave << "sigmoid alpha: "                    << nnParas.sigmoid_alpha << endl;
-    fsave << "max iteration step: "                << nnParas.maxStep << endl << endl;
+    fsave << "sigmoid alpha: "                      << nnParas.sigmoid_alpha << endl;
+    fsave << "max iteration step: "                 << nnParas.maxStep << endl << endl;
     fsave.close();
 }
 
 
-unsigned NeuralNetworks::GetN() { return nnParas.N; }
-unsigned NeuralNetworks::GetDimension() { return nnParas.dimension; }
-unsigned NeuralNetworks::GetN_valid() { return nnParas.N_valid; }
-unsigned NeuralNetworks::GetOutput() { return nnParas.n_output; }
-df::Sigmoid_Type NeuralNetworks::GetSigmoidType() { return nnParas.shape_sigmoid; }
+unsigned NeuralNetworks::GetN() const { return nnParas.N; }
+unsigned NeuralNetworks::GetDimension() const { return nnParas.dimension; }
+unsigned NeuralNetworks::GetN_valid() const { return nnParas.N_valid; }
+unsigned NeuralNetworks::GetOutput() const { return nnParas.n_class; }
+df::Sigmoid_Type NeuralNetworks::GetSigmoidType() const { return nnParas.shape_sigmoid; }
 
 
 
@@ -363,13 +377,13 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
         delta_bias(l).set_size(nnParas.n_hiddens(l));
     }
 
-    weight(nnParas.n_hlayer).set_size(nnParas.n_output, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    bias(nnParas.n_hlayer).set_size(nnParas.n_output);
-    summation(nnParas.n_hlayer).set_size(nnParas.n_output);
-    activation(nnParas.n_hlayer).set_size(nnParas.n_output);
-    delta(nnParas.n_hlayer).set_size(nnParas.n_output);
-    delta_weight(nnParas.n_hlayer).set_size(nnParas.n_output, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    delta_bias(nnParas.n_hlayer).set_size(nnParas.n_output);
+    weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    bias(nnParas.n_hlayer).set_size(nnParas.n_class);
+    summation(nnParas.n_hlayer).set_size(nnParas.n_class);
+    activation(nnParas.n_hlayer).set_size(nnParas.n_class);
+    delta(nnParas.n_hlayer).set_size(nnParas.n_class);
+    delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
 
 
     if ( initialize_type == "uniform" ) {
@@ -532,7 +546,7 @@ void NeuralNetworks::WriteResult(const string& filename) const {
 void NeuralNetworks::ReadResultFile(const string& filename) {
 
     weight_u.set_size(nnParas.dimension+1, nnParas.n_hidden);
-    weight_v.set_size(nnParas.n_hidden+1, nnParas.n_output);
+    weight_v.set_size(nnParas.n_hidden+1, nnParas.n_class);
 
     ifstream fin(filename);
     string dum;
@@ -547,7 +561,7 @@ void NeuralNetworks::ReadResultFile(const string& filename) {
 
     fin >> dum >> dum >> dum >> dum >> dum >> dum;
     for (unsigned i=0; i<nnParas.n_hidden+1; i++) {
-        for (unsigned j=0; j<nnParas.n_output; j++) {
+        for (unsigned j=0; j<nnParas.n_class; j++) {
             fin >> value;
             weight_v(i, j) = value;
         }
@@ -806,7 +820,6 @@ void NeuralNetworks::FeedForward(const arma::Row<dataType>& x) {
 }
 
 
-
 void NeuralNetworks::ActivationFunction(Vector& activation, Vector& summation) {
     SigmoidFuntion(activation, summation);
 }
@@ -917,7 +930,6 @@ void NeuralNetworks::Test(df::DataFrame<dataType>& data, arma::uvec& predict, un
 
     ofstream fsave(predfile.c_str());
     predict.raw_print(fsave, "predeict test data");
-    fsave << endl;
     fsave.close();
 }
 
