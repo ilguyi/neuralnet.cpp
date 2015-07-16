@@ -113,7 +113,7 @@ class NeuralNetworks {
 
     public:
         template<typename dataType>
-        void Training(df::DataFrame<dataType>& data, unsigned& step);
+        void Training(df::DataFrame<dataType>& data, const unsigned& step);
     private:
         template<typename dataType>
         void TrainingOneStep(df::DataFrame<dataType>& data);
@@ -176,9 +176,11 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, c
     const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
-    nnParas.N = N_;                                nnParas.dimension = dimension_;
+    nnParas.N = N_;
+    nnParas.dimension = dimension_;
     nnParas.N_valid = N_valid_;
-    nnParas.n_hiddens = n_hiddens_;                nnParas.n_class = n_class_;
+    nnParas.n_hiddens = n_hiddens_;
+    nnParas.n_class = n_class_;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
@@ -186,7 +188,8 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_, const unsigned& dimension_, c
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
-    nnParas.sigmoid_alpha = sigmoid_alpha_;        nnParas.maxStep = maxStep_;
+    nnParas.sigmoid_alpha = sigmoid_alpha_;
+    nnParas.maxStep = maxStep_;
 }
 
 
@@ -263,9 +266,11 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimen
     const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxStep_) {
 
-    nnParas.N = N_;                                nnParas.dimension = dimension_;
+    nnParas.N = N_;
+    nnParas.dimension = dimension_;
     nnParas.N_valid = N_valid_;
-    nnParas.n_hiddens = n_hiddens_;                nnParas.n_class = n_class_;
+    nnParas.n_hiddens = n_hiddens_;
+    nnParas.n_class = n_class_;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
@@ -273,7 +278,8 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_, const unsigned& dimen
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
-    nnParas.sigmoid_alpha = sigmoid_alpha_;        nnParas.maxStep = maxStep_;
+    nnParas.sigmoid_alpha = sigmoid_alpha_;
+    nnParas.maxStep = maxStep_;
 }
 
 void NeuralNetworks::PrintParameters() const {
@@ -612,7 +618,7 @@ void NeuralNetworks::NamingFileStep(string& filename, const unsigned& step) {
 
 
 template<typename dataType>
-void NeuralNetworks::Training(df::DataFrame<dataType>& data, unsigned& step) {
+void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& step) {
 
     string parafile = "nn.parameter.";
     NamingFile(parafile);
