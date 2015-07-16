@@ -6,8 +6,10 @@
 784
 // Number of validation data
 50
+// Number of test data
+30
 // Number of hidden nodes in each hidden layer n_h1, n_h2, n_h3, ...
-10
+10 10
 // Number of class
 10
 // Learning rate
@@ -21,7 +23,7 @@ Quadratic
 0.001
 // Mini batch size
 10
-// Softmax Boolean
+// Softmax option at output nodes (True or False)
 True
 // Sigmoid type (Binary or Bipolar)
 Binary
