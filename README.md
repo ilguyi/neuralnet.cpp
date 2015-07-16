@@ -1,4 +1,4 @@
-# Neural network for multiclass classification
+# Neural network for multi-class classification
 implement with backpropagation using both Boost and Armadillo library in C++
 
 # Author
