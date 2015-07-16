@@ -67,7 +67,7 @@ int main (int argc, char** argv)
 
     //  Reading test data
     DataFrame<unsigned> MNIST_test;
-    unsigned N_test = 30;
+    unsigned N_test = nn.GetN_test();
     MNIST_test.ReadDataFile(argv[2], N_test, dimension, "True", "False");
     cout << "Read test data complete" << endl;
 //  MNIST_test.PrintData();
