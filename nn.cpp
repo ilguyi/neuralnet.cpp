@@ -25,7 +25,7 @@ int main (int argc, char** argv)
     nn.ReadParameters(argv[3]);
     nn.PrintParameters();
 
-    unsigned N = nn.GetN() + nn.GetN_valid();
+    unsigned N = nn.GetN_train() + nn.GetN_valid();
     unsigned dimension = nn.GetDimension();
 
 
@@ -40,7 +40,7 @@ int main (int argc, char** argv)
     //  Set target data
     arma::uvec target_class;
     target_class << 0 << 1 << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9;
-    if ( target_class.size() != nn.GetOutput() ) {
+    if ( target_class.size() != nn.GetN_class() ) {
         cout << "Usage: number of class is NOT the same" << endl;
         exit(1);
     }
@@ -84,7 +84,7 @@ int main (int argc, char** argv)
     nn.Initialize("gaussian");
 
 
-    for (unsigned iter=0; iter<10; iter++) {
+    for (unsigned iter=0; iter<2; iter++) {
 
 //      nn.Training(normMNIST, iter);
         nn.Training(normMNIST, validMNIST, iter);
