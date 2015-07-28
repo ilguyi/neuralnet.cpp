@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification namespace
  *
  * 2015. 06.
- * modified 2015. 07. 27.
+ * modified 2015. 07. 28.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -21,7 +21,8 @@ namespace nn {
 
 typedef arma::field<arma::mat> Weights;
 typedef arma::field<arma::vec> Biases;
-typedef arma::vec Target;
+typedef arma::mat Weight;
+typedef arma::vec Bias;
 typedef arma::mat Matrix;
 typedef arma::vec Vector;
 
@@ -96,6 +97,7 @@ class NeuralNetworks {
         df::Sigmoid_Type GetSigmoidType() const;
 
         void Initialize(const string& initialize_type);
+        void Initialize(const string& initialize_type, const Weights& weight_init, const Biases& bias_init);
 
     private:
         void Initialize_Uniform(Matrix& weight, Vector& bias);
@@ -421,6 +423,60 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
 }
 
 
+void NeuralNetworks::Initialize(const string& initialize_type, const Weights& weight_init, const Biases& bias_init) {
+
+    if ( weight_init.size() != nnParas.n_hlayer + 1
+        ||  bias_init.size() != nnParas.n_hlayer + 1 ) {
+        cout << "Number of layer weight are different" << endl;
+        exit(1);
+    }
+
+    weight.set_size(nnParas.n_hlayer+1);
+    bias.set_size(nnParas.n_hlayer+1);
+    summation.set_size(nnParas.n_hlayer+1);
+    activation.set_size(nnParas.n_hlayer+1);
+    delta.set_size(nnParas.n_hlayer+1);
+    delta_weight.set_size(nnParas.n_hlayer+1);
+    delta_bias.set_size(nnParas.n_hlayer+1);
+
+    weight(0) = weight_init(0);
+    bias(0) = bias_init(0);
+    summation(0).set_size(nnParas.n_hiddens(0));
+    activation(0).set_size(nnParas.n_hiddens(0));
+    delta(0).set_size(nnParas.n_hiddens(0));
+    delta_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
+    delta_bias(0).set_size(nnParas.n_hiddens(0));
+    
+    for (unsigned l=1; l<nnParas.n_hlayer; l++) {
+        weight(l) = weight_init(l);
+        bias(l) = bias_init(l);
+        summation(l).set_size(nnParas.n_hiddens(l));
+        activation(l).set_size(nnParas.n_hiddens(l));
+        delta(l).set_size(nnParas.n_hiddens(l));
+        delta_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
+        delta_bias(l).set_size(nnParas.n_hiddens(l));
+    }
+
+    weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    bias(nnParas.n_hlayer).set_size(nnParas.n_class);
+    summation(nnParas.n_hlayer).set_size(nnParas.n_class);
+    activation(nnParas.n_hlayer).set_size(nnParas.n_class);
+    delta(nnParas.n_hlayer).set_size(nnParas.n_class);
+    delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
+
+
+    if ( initialize_type == "uniform" )
+        Initialize_Uniform(weight(nnParas.n_hlayer), bias(nnParas.n_hlayer));
+    else if ( initialize_type == "gaussian" )
+        Initialize_Gaussian(weight(nnParas.n_hlayer), bias(nnParas.n_hlayer));
+    else
+        cout << "Usage: you have to type {\"uniform\", \"gaussian\"}" << endl;
+}
+
+
+
+
 void NeuralNetworks::Initialize_Uniform(Matrix& weight, Vector& bias) {
 
     double minmax = 1.0 / sqrt(weight.n_cols);
@@ -451,6 +507,9 @@ void NeuralNetworks::Initialize_Gaussian(Matrix& weight, Vector& bias) {
     for (unsigned i=0; i<weight.n_rows; i++)
         bias(i) = nrnd();
 }
+
+
+
 
 void NeuralNetworks::PrintWeights() const {
 //  cout.precision(10);
