@@ -106,10 +106,10 @@ class NeuralNetworks {
     public:
         void PrintWeights() const;
         void PrintBiases() const;
-        void PrintResult() const;
+        void PrintResults() const;
         void WriteWeights(const string& filename) const;
         void WriteBiases(const string& filename, const string& append) const;
-        void WriteResult(const string& filename) const;
+        void WriteResults(const string& filename) const;
 
 //      void ReadResultFile(const string& filename);
 
@@ -557,7 +557,7 @@ void NeuralNetworks::PrintBiases() const {
     cout << endl;
 }
 
-void NeuralNetworks::PrintResult() const {
+void NeuralNetworks::PrintResults() const {
     PrintWeights();
     PrintBiases();
 }
@@ -616,7 +616,7 @@ void NeuralNetworks::WriteBiases(const string& filename, const string& append) c
     fsave << endl;
 }
 
-void NeuralNetworks::WriteResult(const string& filename) const {
+void NeuralNetworks::WriteResults(const string& filename) const {
     WriteWeights(filename);
     WriteBiases(filename, "append");
 }
@@ -709,7 +709,7 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& ste
     
     string resfile = "nn.result.";
     NamingFileStep(resfile, step);
-    WriteResult(resfile);
+    WriteResults(resfile);
 }
 
 
@@ -750,7 +750,7 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataT
     
     string resfile = "nn.result.";
     NamingFileStep(resfile, step);
-    WriteResult(resfile);
+    WriteResults(resfile);
 }
 
 
