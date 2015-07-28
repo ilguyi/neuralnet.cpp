@@ -136,7 +136,7 @@ class NeuralNetworks {
         void Validation(df::DataFrame<dataType>& valid, double& error, double& accuracy);
 
 
-        void MiniBathces(arma::field<arma::vec>& minibatch);
+        void MiniBathces(arma::field<Vector>& minibatch);
         void InitializeDeltaParameters();
         template<typename dataType>
         void TrainingMiniBatch(df::DataFrame<dataType>& data, const Vector& minibatch, double& error);
@@ -168,10 +168,10 @@ class NeuralNetworks {
         Weights weight;
         Biases bias;
 
-        arma::field<arma::vec> summation;
-        arma::field<arma::vec> activation;
+        arma::field<Vector> summation;
+        arma::field<Vector> activation;
 
-        arma::field<arma::vec> delta;
+        arma::field<Vector> delta;
         Weights delta_weight;
         Biases delta_bias;
 
@@ -716,7 +716,7 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& ste
 template<typename dataType>
 void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data) {
 
-    arma::field<arma::vec> minibatch;
+    arma::field<Vector> minibatch;
     MiniBathces(minibatch);
 
     double error = 0.0;
@@ -757,7 +757,7 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataT
 template<typename dataType>
 void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid) {
 
-    arma::field<arma::vec> minibatch;
+    arma::field<Vector> minibatch;
     MiniBathces(minibatch);
 
     double error = 0.0;
@@ -809,13 +809,13 @@ void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, d
 
 
 
-void NeuralNetworks::MiniBathces(arma::field<arma::vec>& minibatch) {
+void NeuralNetworks::MiniBathces(arma::field<Vector>& minibatch) {
 
     boost::random::uniform_real_distribution<> uniform_real_dist(0, 1);                 //  Choose a distribution
     boost::random::variate_generator<boost::mt19937 &,
         boost::random::uniform_real_distribution<> > urnd(rng, uniform_real_dist);      //  link the Generator to the distribution
 
-    arma::vec rand_data(nnParas.N_train);
+    vector rand_data(nnParas.N_train);
     for (unsigned n=0; n<nnParas.N_train; n++)
         rand_data(n) = urnd();
     arma::uvec shuffleindex = sort_index(rand_data);
