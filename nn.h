@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification namespace
  *
  * 2015. 06.
- * modified 2015. 07. 28.
+ * modified 2015. 07. 31.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -46,6 +46,7 @@ typedef struct NeuralNetworkParameters {
         learningRate(0.5),
         cost(CrossEntropy),
         regularization(0.0),
+        momentum(0.0),
         minibatchSize(1),
         softmax(false),
         shape_sigmoid(Binary),
@@ -65,6 +66,7 @@ typedef struct NeuralNetworkParameters {
     double learningRate;
     CostFunction_Type cost;
     double regularization;
+    double momentum;
     unsigned minibatchSize;
     bool softmax;
     df::Sigmoid_Type shape_sigmoid;
@@ -77,14 +79,14 @@ class NeuralNetworks {
     public:
         NeuralNetworks();
         NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-            const arma::uvec& n_hiddens_, const unsigned& n_class_,
-            const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
+            const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
+            const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
             const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_);
 
         void ReadParameters(const string& filename);
         void ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-            const arma::uvec& n_hiddens_, const unsigned& n_class_,
-            const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize,
+            const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
+            const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
             const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
@@ -175,13 +177,16 @@ class NeuralNetworks {
         Weights delta_weight;
         Biases delta_bias;
 
+        Weights velocity_weight;
+        Biases velocity_bias;
+
         NNParameters nnParas;
 };
 
 NeuralNetworks::NeuralNetworks() {};
 NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-    const arma::uvec& n_hiddens_, const unsigned& n_class_,
-    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
+    const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
+    const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
@@ -194,6 +199,7 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimensi
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
     nnParas.regularization = regularization_;
+    nnParas.momentum = momentum_;
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
@@ -244,6 +250,9 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 
     getline(fin, s);    getline(fin, s);
     nnParas.regularization = stod(s);
+    
+    getline(fin, s);    getline(fin, s);
+    nnParas.momentum = stod(s);
 
     getline(fin, s);    getline(fin, s);
     nnParas.minibatchSize = stoi(s);
@@ -275,8 +284,8 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 
 
 void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-    const arma::uvec& n_hiddens_, const unsigned& n_class_,
-    const double& learningRate_, const CostFunction_Type& cost_, const double& regularization_, const unsigned& minibatchSize_, const bool& softmax_,
+    const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
+    const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
     const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
@@ -289,6 +298,7 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned&
     nnParas.learningRate = learningRate_;        
     nnParas.cost = cost_;
     nnParas.regularization = regularization_;
+    nnParas.momentum = momentum_;
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
@@ -316,6 +326,7 @@ void NeuralNetworks::PrintParameters() const {
     else cout << "cost function: Quadratic" << endl;
 
     cout << "regularization rate: "                 << nnParas.regularization << endl;
+    cout << "momentum rate: "                       << nnParas.momentum << endl;
     cout << "minibatch size: "                      << nnParas.minibatchSize << endl;
 
     if ( nnParas.softmax ) cout << "use of softmax: Yes" << endl;
@@ -349,6 +360,7 @@ void NeuralNetworks::WriteParameters(const string& filename) const {
     else fsave << "cost function: Quadratic" << endl;
 
     fsave << "regularization rate: "                << nnParas.regularization << endl;
+    fsave << "momentum rate: "                      << nnParas.momentum << endl;
     fsave << "minibatch size: "                     << nnParas.minibatchSize << endl;
 
     if ( nnParas.softmax ) fsave << "use of softmax: Yes" << endl;
@@ -381,6 +393,8 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
     delta.set_size(nnParas.n_hlayer+1);
     delta_weight.set_size(nnParas.n_hlayer+1);
     delta_bias.set_size(nnParas.n_hlayer+1);
+    velocity_weight.set_size(nnParas.n_hlayer+1);
+    velocity_bias.set_size(nnParas.n_hlayer+1);
 
     weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
     bias(0).set_size(nnParas.n_hiddens(0));
@@ -389,6 +403,8 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
     delta(0).set_size(nnParas.n_hiddens(0));
     delta_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
     delta_bias(0).set_size(nnParas.n_hiddens(0));
+    velocity_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
+    velocity_bias(0).set_size(nnParas.n_hiddens(0));
     
     for (unsigned l=1; l<nnParas.n_hlayer; l++) {
         weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
@@ -398,6 +414,8 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
         delta(l).set_size(nnParas.n_hiddens(l));
         delta_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
         delta_bias(l).set_size(nnParas.n_hiddens(l));
+        velocity_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
+        velocity_bias(l).set_size(nnParas.n_hiddens(l));
     }
 
     weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
@@ -407,18 +425,22 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
     delta(nnParas.n_hlayer).set_size(nnParas.n_class);
     delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
     delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
+    velocity_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
 
 
-    if ( initialize_type == "uniform" ) {
+    if ( initialize_type == "uniform" )
         for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
             Initialize_Uniform(weight(l), bias(l));
-    }
-    else if ( initialize_type == "gaussian" ) {
+    else if ( initialize_type == "gaussian" )
         for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
             Initialize_Gaussian(weight(l), bias(l));
-    }
-    else {
+    else
         cout << "Usage: you have to type {\"uniform\", \"gaussian\"}" << endl;
+
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        velocity_weight(l).zeros();
+        velocity_bias(l).zeros();
     }
 }
 
@@ -438,6 +460,8 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
     delta.set_size(nnParas.n_hlayer+1);
     delta_weight.set_size(nnParas.n_hlayer+1);
     delta_bias.set_size(nnParas.n_hlayer+1);
+    velocity_weight.set_size(nnParas.n_hlayer+1);
+    velocity_bias.set_size(nnParas.n_hlayer+1);
 
     weight(0) = weight_init(0);
     bias(0) = bias_init(0);
@@ -446,6 +470,8 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
     delta(0).set_size(nnParas.n_hiddens(0));
     delta_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
     delta_bias(0).set_size(nnParas.n_hiddens(0));
+    velocity_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
+    velocity_bias(0).set_size(nnParas.n_hiddens(0));
     
     for (unsigned l=1; l<nnParas.n_hlayer; l++) {
         weight(l) = weight_init(l);
@@ -455,6 +481,8 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
         delta(l).set_size(nnParas.n_hiddens(l));
         delta_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
         delta_bias(l).set_size(nnParas.n_hiddens(l));
+        velocity_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
+        velocity_bias(l).set_size(nnParas.n_hiddens(l));
     }
 
     weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
@@ -464,6 +492,8 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
     delta(nnParas.n_hlayer).set_size(nnParas.n_class);
     delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
     delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
+    velocity_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
+    velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
 
 
     if ( initialize_type == "uniform" )
@@ -472,6 +502,12 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
         Initialize_Gaussian(weight(nnParas.n_hlayer), bias(nnParas.n_hlayer));
     else
         cout << "Usage: you have to type {\"uniform\", \"gaussian\"}" << endl;
+
+
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        velocity_weight(l).zeros();
+        velocity_bias(l).zeros();
+    }
 }
 
 
@@ -761,8 +797,10 @@ void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFram
     MiniBathces(minibatch);
 
     double error = 0.0;
-    for (unsigned n=0; n<minibatch.size(); n++)
+    for (unsigned n=0; n<minibatch.size(); n++) {
+        cout << "minibatch : " << n << endl;
         TrainingMiniBatch(data, minibatch(n), error);
+    }
     error /= (double) nnParas.N_train;
 
 
@@ -815,7 +853,7 @@ void NeuralNetworks::MiniBathces(arma::field<Vector>& minibatch) {
     boost::random::variate_generator<boost::mt19937 &,
         boost::random::uniform_real_distribution<> > urnd(rng, uniform_real_dist);      //  link the Generator to the distribution
 
-    vector rand_data(nnParas.N_train);
+    Vector rand_data(nnParas.N_train);
     for (unsigned n=0; n<nnParas.N_train; n++)
         rand_data(n) = urnd();
     arma::uvec shuffleindex = sort_index(rand_data);
@@ -973,10 +1011,24 @@ void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::i
 void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
 
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        velocity_weight(l) = nnParas.momentum * velocity_weight(l)
+                            - weight(l) * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
+                            - nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
+        velocity_bias(l) = nnParas.momentum * velocity_bias(l)
+                            - nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
+    }
+
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        weight(l) += velocity_weight(l);
+        bias(l) += velocity_bias(l);
+    }
+/*
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
         weight(l) *= (1.0 - nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train);
         weight(l) -= nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
         bias(l) -= nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
     }
+    */
 }
 
 
