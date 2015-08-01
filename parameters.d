@@ -21,6 +21,8 @@
 CrossEntropy
 // Regularization parameter
 0.00001
+// Momentum parameter
+0.1
 // Mini batch size
 10
 // Softmax option at output nodes (True or False)
