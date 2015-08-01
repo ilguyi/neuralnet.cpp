@@ -743,9 +743,11 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& ste
         TrainingOneStep(data);
     }
     
-    string resfile = "nn.result.";
-    NamingFileStep(resfile, step);
-    WriteResults(resfile);
+    if ( step % 10 == 0 ) {
+        string resfile = "nn.result.";
+        NamingFileStep(resfile, step);
+        WriteResults(resfile);
+    }
 }
 
 
@@ -784,9 +786,11 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataT
         TrainingOneStep(data, valid);
     }
     
-    string resfile = "nn.result.";
-    NamingFileStep(resfile, step);
-    WriteResults(resfile);
+    if ( step % 10 == 0 ) {
+        string resfile = "nn.result.";
+        NamingFileStep(resfile, step);
+        WriteResults(resfile);
+    }
 }
 
 
@@ -797,10 +801,8 @@ void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFram
     MiniBathces(minibatch);
 
     double error = 0.0;
-    for (unsigned n=0; n<minibatch.size(); n++) {
-        cout << "minibatch : " << n << endl;
+    for (unsigned n=0; n<minibatch.size(); n++)
         TrainingMiniBatch(data, minibatch(n), error);
-    }
     error /= (double) nnParas.N_train;
 
 
