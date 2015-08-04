@@ -1,8 +1,8 @@
 /***********************************************************
- * Neural networks for multi-class classification namespace
+ * Neural networks for multi-class classification
  *
  * 2015. 06.
- * modified 2015. 07. 31.
+ * modified 2015. 08. 04.
  * by Il Gu Yi
 ***********************************************************/
 
