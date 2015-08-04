@@ -9,7 +9,7 @@
 // Number of test data
 30
 // Number of hidden nodes in each hidden layer n_h1, n_h2, n_h3, ...
-30 20
+15
 // Number of class
 10
 // Learning rate
@@ -22,9 +22,9 @@ CrossEntropy
 // Regularization parameter
 0.00001
 // Momentum parameter
-0.1
+0.9
 // Mini batch size
-10
+50
 // Softmax option at output nodes (True or False)
 True
 // Sigmoid type (Binary or Bipolar)
@@ -32,6 +32,6 @@ Binary
 // sigmoid_alpha
 1.0
 // iteration max epochs
-100
+1
 // Initialize type (gaussian or uniform)
 gaussian
