@@ -69,13 +69,12 @@ int main (int argc, char** argv)
 //    trainMNIST.LinearScalingEachFeatures(validMNIST, testMNIST, trainMNIST_norm, validMNIST_norm, testMNIST_norm);
     trainMNIST.NormalizationEachFeatures(validMNIST, testMNIST, trainMNIST_norm, validMNIST_norm, testMNIST_norm);
     cout << "Linear scaling all data complete" << endl;
-    trainMNIST_norm.PrintData();
-    validMNIST_norm.PrintData();
-    testMNIST_norm.PrintData();
+//    trainMNIST_norm.PrintData();
+//    validMNIST_norm.PrintData();
+//    testMNIST_norm.PrintData();
 
 
 
-/*
 //  Execute NeuralNetworks
     nn.Initialize("gaussian");
 
@@ -87,12 +86,10 @@ int main (int argc, char** argv)
         arma::uvec predict(N_test);
         predict.zeros();
 
-        nn.Test(normMNIST_test, predict, iter);
+        nn.Test(testMNIST_norm, predict, iter);
     }
-*/
 
 
     return 0;
 }
-
 
