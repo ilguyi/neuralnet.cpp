@@ -29,13 +29,12 @@ int main (int argc, char** argv)
     unsigned dimension = nn.GetDimension();
 
 
-
     //  Reading training data
-    DataFrame<unsigned> MNIST;
+    DataFrame<unsigned> trainMNIST;
 //  Usage: ReadDataFile(filename, N, dimension, header, target)
-    MNIST.ReadDataFile(argv[1], N, dimension, "True", "True");
+    trainMNIST.ReadDataFile(argv[1], N, dimension, "True", "True");
     cout << "Read training data complete" << endl;
-//  MNIST.PrintData();
+//  trainMNIST.PrintData();
 
     //  Set target data
     arma::uvec target_class;
@@ -45,57 +44,52 @@ int main (int argc, char** argv)
         exit(1);
     }
     df::Sigmoid_Type shape_sigmoid = nn.GetSigmoidType();
-    MNIST.SetTargetMatrix(target_class, shape_sigmoid);
+    trainMNIST.SetTargetMatrix(target_class, shape_sigmoid);
     cout << "Target Matrix complete" << endl;
-//  MNIST.PrintTarget();
-//  MNIST.PrintTargetMatrix();
-
-    //  Set linear scaling each features
-    DataFrame<double> normMNIST;
-    MNIST.LinearScalingEachFeatures(normMNIST);
-    cout << "Normalize training data complete" << endl;
-//  normMNIST.PrintData();
+//  trainMNIST.PrintTarget();
+//  trainMNIST.PrintTargetMatrix();
 
 
     //  Randomly extract validation data
-    DataFrame<double> validMNIST;
-    normMNIST.SplitValidationSet(validMNIST, nn.GetN_valid());
+    DataFrame<unsigned> validMNIST;
+    trainMNIST.SplitValidationSet(validMNIST, nn.GetN_valid());
     cout << "Split validation data complete" << endl;
 
 
-
-
     //  Reading test data
-    DataFrame<unsigned> MNIST_test;
+    DataFrame<unsigned> testMNIST;
     unsigned N_test = nn.GetN_test();
-    MNIST_test.ReadDataFile(argv[2], N_test, dimension, "True", "False");
+    testMNIST.ReadDataFile(argv[2], N_test, dimension, "True", "False");
     cout << "Read test data complete" << endl;
-//  MNIST_test.PrintData();
+//  testMNIST.PrintData();
+
 
     //  Set linear scaling each features
-    DataFrame<double> normMNIST_test;
-    MNIST_test.LinearScalingEachFeatures(normMNIST_test);
-    cout << "Normalize test data complete" << endl;
-//  normMNIST_test.PrintData();
+    DataFrame<double> trainMNIST_norm, validMNIST_norm, testMNIST_norm;
+//    trainMNIST.LinearScalingEachFeatures(validMNIST, testMNIST, trainMNIST_norm, validMNIST_norm, testMNIST_norm);
+    trainMNIST.NormalizationEachFeatures(validMNIST, testMNIST, trainMNIST_norm, validMNIST_norm, testMNIST_norm);
+    cout << "Linear scaling all data complete" << endl;
+    trainMNIST_norm.PrintData();
+    validMNIST_norm.PrintData();
+    testMNIST_norm.PrintData();
 
 
 
+/*
 //  Execute NeuralNetworks
     nn.Initialize("gaussian");
 
+    for (unsigned iter=0; iter<1000; iter++) {
 
-    for (unsigned iter=0; iter<2; iter++) {
-
-//      nn.Training(normMNIST, iter);
-        nn.Training(normMNIST, validMNIST, iter);
+//      nn.Training(trainMNIST_norm, iter);
+        nn.Training(trainMNIST_norm, validMNIST_norm, iter);
 
         arma::uvec predict(N_test);
         predict.zeros();
 
         nn.Test(normMNIST_test, predict, iter);
     }
-
-
+*/
 
 
     return 0;
