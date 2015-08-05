@@ -13,7 +13,7 @@ Il Gu Yi
 - DATA: MNIST (partial data) 
 
 
-# What program can do (version 0.3) (2015. 08. 01.)
+# What program can do (version 0.3) (2015. 08. 05.)
 - Multiple hidden layer
 - Validation data (extracting randomly from train data)
 - Two cost function (cross entropy or quadratic error)
@@ -22,6 +22,7 @@ Il Gu Yi
 - Two sigmoid function type (binary or bipolar)
 - Softmax activation at output layer
 - Apply momemtum parameter
+- Apply Nesterov momemtum
 
 
 # Requirements
@@ -31,8 +32,9 @@ for weights and bias initialization and stochastic gradient descent.
 for various calculation based on matrix and vector.
 
 
-## Version 0.3 (2015. 08. 01.)
+## Version 0.3 (2015. 08. 05.)
 - Apply momemtum parameter
+- Apply Nesterov momemtum
 
 ## Version 0.2 (2015. 07. 13.)
 - Softmax activation at output layer
