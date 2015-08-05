@@ -989,7 +989,7 @@ void NeuralNetworks::SoftmaxActivation(Vector& activation, Vector& summation) {
 template<typename dataType>
 void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::irowvec& t) {
 
-    if ( nnParas.cost == Quadratic ) {
+    if ( nnParas.cost != CrossEntropy ) {
         delta(nnParas.n_hlayer) = (activation(nnParas.n_hlayer) - t.t()) % DerivativeSigmoid(summation(nnParas.n_hlayer));
         for (unsigned i=nnParas.n_hlayer-1; i>0; i--)
             delta(i) = (delta(i+1).t() * weight(i+1)).t() % DerivativeSigmoid(summation(i));
@@ -1048,8 +1048,8 @@ void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
     }
     */
 
-    /*  Without Momentum
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+    //  Without Momentum
+/*    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
         weight(l) *= (1. - nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train);
         weight(l) -= nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
         bias(l) -= nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
