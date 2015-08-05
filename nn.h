@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification
  *
  * 2015. 06.
- * modified 2015. 08. 04.
+ * modified 2015. 08. 05.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -50,7 +50,7 @@ typedef struct NeuralNetworkParameters {
         minibatchSize(1),
         softmax(false),
         shape_sigmoid(Binary),
-        sigmoid_alpha(1.0),
+        sigmoid_alpha(1.),
         maxEpoch(100) {
             n_hiddens;
             n_hlayer = n_hiddens.size();
@@ -515,7 +515,7 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
 
 void NeuralNetworks::Initialize_Uniform(Matrix& weight, Vector& bias) {
 
-    double minmax = 1.0 / sqrt(weight.n_cols);
+    double minmax = 1. / sqrt(weight.n_cols);
     boost::random::uniform_real_distribution<> uniform_real_dist(-minmax, minmax);      //  Choose a distribution
     boost::random::variate_generator<boost::mt19937 &,
         boost::random::uniform_real_distribution<> > urnd(rng, uniform_real_dist);      //  link the Generator to the distribution
@@ -531,7 +531,7 @@ void NeuralNetworks::Initialize_Uniform(Matrix& weight, Vector& bias) {
 
 void NeuralNetworks::Initialize_Gaussian(Matrix& weight, Vector& bias) {
 
-    double std_dev = 1.0 / sqrt(weight.n_cols);
+    double std_dev = 1. / sqrt(weight.n_cols);
     boost::random::normal_distribution<> normal_dist(0.0, std_dev);         //  Choose a distribution
     boost::random::variate_generator<boost::random::mt19937 &,
         boost::random::normal_distribution<> > nrnd(rng, normal_dist);      //  link the Generator to the distribution
@@ -703,6 +703,10 @@ void NeuralNetworks::NamingFile(string& filename) {
     ss << nnParas.regularization;
     filename += ss.str();    ss.str("");
 
+    filename += "mo";
+    ss << nnParas.momentum;
+    filename += ss.str();    ss.str("");
+
     filename += ".txt";
 }
 
@@ -719,6 +723,10 @@ void NeuralNetworks::NamingFileStep(string& filename, const unsigned& step) {
 
     filename += "rg";
     ss << nnParas.regularization;
+    filename += ss.str();    ss.str("");
+
+    filename += "mo";
+    ss << nnParas.momentum;
     filename += ss.str();    ss.str("");
 
     filename += "step";
@@ -834,12 +842,12 @@ void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, d
             error += arma::dot(t.t() - activation(nnParas.n_hlayer), t.t() - activation(nnParas.n_hlayer)) * 0.5;
         else
             error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer))) -
-                arma::dot(1.0 - t.t(), log(1.0 - activation(nnParas.n_hlayer)));
+                arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
 
         //  accuracy estimation
         arma::uword index;
         double max_value = activation(nnParas.n_hlayer).max(index);
-        if ( index != valid.GetTarget(n) ) accuracy += 1.0;
+        if ( index != valid.GetTarget(n) ) accuracy += 1.;
     }
     error /= (double) nnParas.N_valid;
     accuracy /= (double) nnParas.N_valid;
@@ -914,7 +922,7 @@ void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vect
             error += arma::dot(t.t() - activation(nnParas.n_hlayer), t.t() - activation(nnParas.n_hlayer)) * 0.5;
         else
             error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer))) -
-                arma::dot(1.0 - t.t(), log(1.0 - activation(nnParas.n_hlayer)));
+                arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
 
         //  Error Back Propagation
         BackPropagation(x, t);
@@ -942,10 +950,6 @@ void NeuralNetworks::FeedForward(const arma::Row<dataType>& x) {
         SoftmaxActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
     else
         SigmoidActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
-
-
-//  cout << summation << endl;
-//  cout << activation << endl;
 }
 
 
@@ -1012,7 +1016,25 @@ void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::i
 
 void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
 
+    //  Nesterov Momentum
+    Weights velocity_weight_prev = velocity_weight;
+    Biases velocity_bias_prev = velocity_bias;
+
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        velocity_weight(l) = nnParas.momentum * velocity_weight(l)
+                            - weight(l) * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
+                            - nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
+        velocity_bias(l) = nnParas.momentum * velocity_bias(l)
+                            - nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
+    }
+ 
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        weight(l) += (1. + nnParas.momentum) * velocity_weight(l) - nnParas.momentum * velocity_weight_prev(l);
+        bias(l) += (1. + nnParas.momentum) * velocity_bias(l) - nnParas.momentum * velocity_bias_prev(l);
+    }
+
+    //  Momentum
+/*    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
         velocity_weight(l) = nnParas.momentum * velocity_weight(l)
                             - weight(l) * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
                             - nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
@@ -1024,9 +1046,11 @@ void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
         weight(l) += velocity_weight(l);
         bias(l) += velocity_bias(l);
     }
-/*
+    */
+
+    /*  Without Momentum
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        weight(l) *= (1.0 - nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train);
+        weight(l) *= (1. - nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train);
         weight(l) -= nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
         bias(l) -= nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
     }
