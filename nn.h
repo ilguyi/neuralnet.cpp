@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification
  *
  * 2015. 06.
- * modified 2015. 08. 05.
+ * modified 2015. 08. 25.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -50,7 +50,6 @@ typedef struct NeuralNetworkParameters {
         minibatchSize(1),
         softmax(false),
         shape_sigmoid(Binary),
-        sigmoid_alpha(1.),
         maxEpoch(100) {
             n_hiddens;
             n_hlayer = n_hiddens.size();
@@ -70,7 +69,6 @@ typedef struct NeuralNetworkParameters {
     unsigned minibatchSize;
     bool softmax;
     df::Sigmoid_Type shape_sigmoid;
-    double sigmoid_alpha;
     unsigned maxEpoch;
 } NNParameters;
 
@@ -81,13 +79,13 @@ class NeuralNetworks {
         NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
             const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
             const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_);
+            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_);
 
         void ReadParameters(const string& filename);
         void ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
             const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
             const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_);
+            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
 
@@ -187,7 +185,7 @@ NeuralNetworks::NeuralNetworks() {};
 NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
     const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
     const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_) {
+    const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
     nnParas.dimension = dimension_;
@@ -203,7 +201,6 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimensi
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
-    nnParas.sigmoid_alpha = sigmoid_alpha_;
     nnParas.maxEpoch = maxEpoch_;
 }
 
@@ -275,9 +272,6 @@ void NeuralNetworks::ReadParameters(const string& filename) {
     }
 
     getline(fin, s);    getline(fin, s);
-    nnParas.sigmoid_alpha = stod(s);
-
-    getline(fin, s);    getline(fin, s);
     nnParas.maxEpoch = stoi(s);
 }
 
@@ -286,7 +280,7 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
     const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
     const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const df::Sigmoid_Type& shape_sigmoid_, const double& sigmoid_alpha_, const unsigned& maxEpoch_) {
+    const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
     nnParas.dimension = dimension_;
@@ -302,7 +296,6 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned&
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
     nnParas.shape_sigmoid = shape_sigmoid_;
-    nnParas.sigmoid_alpha = sigmoid_alpha_;
     nnParas.maxEpoch = maxEpoch_;
 }
 
@@ -335,7 +328,6 @@ void NeuralNetworks::PrintParameters() const {
     if ( nnParas.shape_sigmoid == Binary ) cout << "sigmoid type: Binary" << endl;
     else cout << "sigmoid type: Bipolar" << endl;
 
-    cout << "sigmoid alpha: "                       << nnParas.sigmoid_alpha << endl;
     cout << "iteration max epochs: "                << nnParas.maxEpoch << endl << endl;
 }
 
@@ -369,7 +361,6 @@ void NeuralNetworks::WriteParameters(const string& filename) const {
     if ( nnParas.shape_sigmoid == Binary ) fsave << "sigmoid type: Binary" << endl;
     else fsave << "sigmoid type: Bipolar" << endl;
 
-    fsave << "sigmoid alpha: "                      << nnParas.sigmoid_alpha << endl;
     fsave << "iteration max epochs: "               << nnParas.maxEpoch << endl << endl;
     fsave.close();
 }
@@ -959,9 +950,9 @@ void NeuralNetworks::SigmoidActivation(Vector& activation, Vector& summation) {
 
 void NeuralNetworks::SigmoidFuntion(Vector& activation, Vector& summation) {
     if ( nnParas.shape_sigmoid != Binary )
-        activation = 2. / (1. + exp(-nnParas.sigmoid_alpha * summation)) - 1.;
+        activation = 2. / (1. + exp(-summation)) - 1.;
     else
-        activation = 1. / (1. + exp(-nnParas.sigmoid_alpha * summation));
+        activation = 1. / (1. + exp(-summation));
 }
 
 Vector NeuralNetworks::DerivativeSigmoid(Vector& x) {
@@ -969,9 +960,9 @@ Vector NeuralNetworks::DerivativeSigmoid(Vector& x) {
     SigmoidFuntion(temp, x);
 
     if ( nnParas.shape_sigmoid != Binary )
-        temp = nnParas.sigmoid_alpha * (1. + temp) % (1. - temp) * 0.5;
+        temp = (1. + temp) % (1. - temp) * 0.5;
     else
-        temp = nnParas.sigmoid_alpha * temp % (1. - temp);
+        temp = temp % (1. - temp);
 
     return temp;
 }
