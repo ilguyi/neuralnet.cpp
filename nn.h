@@ -49,7 +49,6 @@ typedef struct NeuralNetworkParameters {
         momentum(0.0),
         minibatchSize(1),
         softmax(false),
-        shape_sigmoid(Binary),
         maxEpoch(100) {
             n_hiddens;
             n_hlayer = n_hiddens.size();
@@ -68,7 +67,6 @@ typedef struct NeuralNetworkParameters {
     double momentum;
     unsigned minibatchSize;
     bool softmax;
-    df::Sigmoid_Type shape_sigmoid;
     unsigned maxEpoch;
 } NNParameters;
 
@@ -79,13 +77,13 @@ class NeuralNetworks {
         NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
             const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
             const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_);
+            const bool& softmax_, const unsigned& maxEpoch_);
 
         void ReadParameters(const string& filename);
         void ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
             const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
             const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_);
+            const bool& softmax_, const unsigned& maxEpoch_);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
 
@@ -94,7 +92,6 @@ class NeuralNetworks {
         unsigned GetN_valid() const;
         unsigned GetN_test() const;
         unsigned GetN_class() const;
-        df::Sigmoid_Type GetSigmoidType() const;
 
         void Initialize();
         void Initialize(const Weights& weight_init, const Biases& bias_init);
@@ -144,9 +141,11 @@ class NeuralNetworks {
         template<typename dataType>
         void FeedForward(const arma::Row<dataType>& x);
 
-        void SigmoidActivation(Vector& activation, Vector& summation);
+        void Activation(Vector& activation, Vector& summation);
         void SigmoidFuntion(Vector& activation, Vector& summation);
+        void TanhFuntion(Vector& activation, Vector& summation);
         Vector DerivativeSigmoid(Vector& x);
+        Vector DerivativeTanh(Vector& x);
         void SoftmaxActivation(Vector& activation, Vector& summation);
 
         template<typename dataType>
@@ -184,7 +183,7 @@ NeuralNetworks::NeuralNetworks() {};
 NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
     const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
     const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_) {
+    const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
     nnParas.dimension = dimension_;
@@ -199,7 +198,6 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimensi
     nnParas.momentum = momentum_;
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
-    nnParas.shape_sigmoid = shape_sigmoid_;
     nnParas.maxEpoch = maxEpoch_;
 }
 
@@ -263,14 +261,6 @@ void NeuralNetworks::ReadParameters(const string& filename) {
     }
 
     getline(fin, s);    getline(fin, s);
-    if ( s == "Binary" ) nnParas.shape_sigmoid = Binary;
-    else if ( s == "Bipolar" ) nnParas.shape_sigmoid = Bipolar;
-    else {
-        cout << "Usage: Wrong Sigmoid function type" << endl;
-        cout << "you must type Binary or Bipolar" << endl;
-    }
-
-    getline(fin, s);    getline(fin, s);
     nnParas.maxEpoch = stoi(s);
 }
 
@@ -279,7 +269,7 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
     const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
     const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const df::Sigmoid_Type& shape_sigmoid_, const unsigned& maxEpoch_) {
+    const unsigned& maxEpoch_) {
 
     nnParas.N_train = N_train_;
     nnParas.dimension = dimension_;
@@ -294,7 +284,6 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned&
     nnParas.momentum = momentum_;
     nnParas.minibatchSize = minibatchSize_;
     nnParas.softmax = softmax_;
-    nnParas.shape_sigmoid = shape_sigmoid_;
     nnParas.maxEpoch = maxEpoch_;
 }
 
@@ -323,9 +312,6 @@ void NeuralNetworks::PrintParameters() const {
 
     if ( nnParas.softmax ) cout << "use of softmax: Yes" << endl;
     else cout << "use of softmax: No" << endl;
-
-    if ( nnParas.shape_sigmoid == Binary ) cout << "sigmoid type: Binary" << endl;
-    else cout << "sigmoid type: Bipolar" << endl;
 
     cout << "iteration max epochs: "                << nnParas.maxEpoch << endl << endl;
 }
@@ -357,9 +343,6 @@ void NeuralNetworks::WriteParameters(const string& filename) const {
     if ( nnParas.softmax ) fsave << "use of softmax: Yes" << endl;
     else fsave << "use of softmax: No" << endl;
 
-    if ( nnParas.shape_sigmoid == Binary ) fsave << "sigmoid type: Binary" << endl;
-    else fsave << "sigmoid type: Bipolar" << endl;
-
     fsave << "iteration max epochs: "               << nnParas.maxEpoch << endl << endl;
     fsave.close();
 }
@@ -370,7 +353,6 @@ unsigned NeuralNetworks::GetDimension() const { return nnParas.dimension; }
 unsigned NeuralNetworks::GetN_valid() const { return nnParas.N_valid; }
 unsigned NeuralNetworks::GetN_test() const { return nnParas.N_test; }
 unsigned NeuralNetworks::GetN_class() const { return nnParas.n_class; }
-df::Sigmoid_Type NeuralNetworks::GetSigmoidType() const { return nnParas.shape_sigmoid; }
 
 
 
@@ -895,43 +877,48 @@ template<typename dataType>
 void NeuralNetworks::FeedForward(const arma::Row<dataType>& x) {
 
     summation(0) = weight(0) * x.t() + bias(0);
-    SigmoidActivation(activation(0), summation(0));
+    Activation(activation(0), summation(0));
 
     for (unsigned i=1; i<nnParas.n_hlayer; i++) {
         summation(i) = weight(i) * activation(i-1) + bias(i);
-        SigmoidActivation(activation(i), summation(i));
+        Activation(activation(i), summation(i));
     }
 
     summation(nnParas.n_hlayer) = weight(nnParas.n_hlayer) * activation(nnParas.n_hlayer-1) + bias(nnParas.n_hlayer);
     if ( nnParas.softmax )
         SoftmaxActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
     else
-        SigmoidActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
+        Activation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
 }
 
 
-void NeuralNetworks::SigmoidActivation(Vector& activation, Vector& summation) {
+void NeuralNetworks::Activation(Vector& activation, Vector& summation) {
     SigmoidFuntion(activation, summation);
+//    TanhFuntion(activation, summation);
 }
 
 void NeuralNetworks::SigmoidFuntion(Vector& activation, Vector& summation) {
-    if ( nnParas.shape_sigmoid != Binary )
-        activation = 2. / (1. + exp(-summation)) - 1.;
-    else
-        activation = 1. / (1. + exp(-summation));
+    activation = 1. / (1. + exp(-summation));
+}
+
+void NeuralNetworks::TanhFuntion(Vector& activation, Vector& summation) {
+    activation = 2. / (1. + exp(-summation)) - 1.;
 }
 
 Vector NeuralNetworks::DerivativeSigmoid(Vector& x) {
     Vector temp(x.size());
     SigmoidFuntion(temp, x);
 
-    if ( nnParas.shape_sigmoid != Binary )
-        temp = (1. + temp) % (1. - temp) * 0.5;
-    else
-        temp = temp % (1. - temp);
-
-    return temp;
+    return temp % (1. - temp);
 }
+
+Vector NeuralNetworks::DerivativeTanh(Vector& x) {
+    Vector temp(x.size());
+    TanhFuntion(temp, x);
+
+    return (1. + temp) % (1. - temp) * 0.5;
+}
+
 
 
 
