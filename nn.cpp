@@ -43,8 +43,7 @@ int main (int argc, char** argv)
         cout << "Usage: number of class is NOT the same" << endl;
         exit(1);
     }
-    df::Sigmoid_Type shape_sigmoid = nn.GetSigmoidType();
-    trainMNIST.SetTargetMatrix(target_class, shape_sigmoid);
+    trainMNIST.SetTargetMatrix(target_class, df::Binary);
     cout << "Target Matrix complete" << endl;
 //  trainMNIST.PrintTarget();
 //  trainMNIST.PrintTargetMatrix();
@@ -76,11 +75,13 @@ int main (int argc, char** argv)
 
 
 //  Execute NeuralNetworks
-    nn.Initialize("gaussian");
+    nn.Initialize();
+    cout << "before training" << endl;
+    nn.PrintResults();
 
-    for (unsigned iter=0; iter<1000; iter++) {
+    for (unsigned iter=0; iter<1; iter++) {
 
-//      nn.Training(trainMNIST_norm, iter);
+//        nn.Training(trainMNIST_norm, iter);
         nn.Training(trainMNIST_norm, validMNIST_norm, iter);
 
         arma::uvec predict(N_test);
