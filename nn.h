@@ -96,12 +96,11 @@ class NeuralNetworks {
         unsigned GetN_class() const;
         df::Sigmoid_Type GetSigmoidType() const;
 
-        void Initialize(const string& initialize_type);
-        void Initialize(const string& initialize_type, const Weights& weight_init, const Biases& bias_init);
+        void Initialize();
+        void Initialize(const Weights& weight_init, const Biases& bias_init);
 
     private:
-        void Initialize_Uniform(Matrix& weight, Vector& bias);
-        void Initialize_Gaussian(Matrix& weight, Vector& bias);
+        void Initialize_Gaussian(Weight& weight, Bias& bias);
 
     public:
         void PrintWeights() const;
@@ -375,7 +374,7 @@ df::Sigmoid_Type NeuralNetworks::GetSigmoidType() const { return nnParas.shape_s
 
 
 
-void NeuralNetworks::Initialize(const string& initialize_type) {
+void NeuralNetworks::Initialize() {
 
     weight.set_size(nnParas.n_hlayer+1);
     bias.set_size(nnParas.n_hlayer+1);
@@ -420,23 +419,16 @@ void NeuralNetworks::Initialize(const string& initialize_type) {
     velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
 
 
-    if ( initialize_type == "uniform" )
-        for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
-            Initialize_Uniform(weight(l), bias(l));
-    else if ( initialize_type == "gaussian" )
-        for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
-            Initialize_Gaussian(weight(l), bias(l));
-    else
-        cout << "Usage: you have to type {\"uniform\", \"gaussian\"}" << endl;
-
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        Initialize_Gaussian(weight(l), bias(l));
+
         velocity_weight(l).zeros();
         velocity_bias(l).zeros();
     }
 }
 
 
-void NeuralNetworks::Initialize(const string& initialize_type, const Weights& weight_init, const Biases& bias_init) {
+void NeuralNetworks::Initialize(const Weights& weight_init, const Biases& bias_init) {
 
     if ( weight_init.size() != nnParas.n_hlayer + 1
         ||  bias_init.size() != nnParas.n_hlayer + 1 ) {
@@ -487,41 +479,15 @@ void NeuralNetworks::Initialize(const string& initialize_type, const Weights& we
     velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
 
 
-    if ( initialize_type == "uniform" )
-        Initialize_Uniform(weight(nnParas.n_hlayer), bias(nnParas.n_hlayer));
-    else if ( initialize_type == "gaussian" )
-        Initialize_Gaussian(weight(nnParas.n_hlayer), bias(nnParas.n_hlayer));
-    else
-        cout << "Usage: you have to type {\"uniform\", \"gaussian\"}" << endl;
-
-
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
         velocity_weight(l).zeros();
         velocity_bias(l).zeros();
     }
 }
 
+void NeuralNetworks::Initialize_Gaussian(Weight& weight, Bias& bias) {
 
-
-
-void NeuralNetworks::Initialize_Uniform(Matrix& weight, Vector& bias) {
-
-    double minmax = 1. / sqrt(weight.n_cols);
-    boost::random::uniform_real_distribution<> uniform_real_dist(-minmax, minmax);      //  Choose a distribution
-    boost::random::variate_generator<boost::mt19937 &,
-        boost::random::uniform_real_distribution<> > urnd(rng, uniform_real_dist);      //  link the Generator to the distribution
-
-    for (unsigned j=0; j<weight.n_cols; j++)
-        for (unsigned i=0; i<weight.n_rows; i++)
-            weight(i, j) = urnd();
-
-    for (unsigned i=0; i<weight.n_rows; i++)
-        bias(i) = urnd();
-}
-
-
-void NeuralNetworks::Initialize_Gaussian(Matrix& weight, Vector& bias) {
-
+    //  weight Initialize from Gaussian distribution
     double std_dev = 1. / sqrt(weight.n_cols);
     boost::random::normal_distribution<> normal_dist(0.0, std_dev);         //  Choose a distribution
     boost::random::variate_generator<boost::random::mt19937 &,
@@ -531,7 +497,7 @@ void NeuralNetworks::Initialize_Gaussian(Matrix& weight, Vector& bias) {
         for (unsigned i=0; i<weight.n_rows; i++)
             weight(i, j) = nrnd();
 
-    for (unsigned i=0; i<weight.n_rows; i++)
+    for (unsigned i=0; i<bias.n_rows; i++)
         bias(i) = nrnd();
 }
 
