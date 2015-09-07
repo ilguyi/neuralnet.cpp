@@ -471,7 +471,7 @@ void NeuralNetworks::Initialize_Gaussian(Weight& weight, Bias& bias) {
 
     //  weight Initialize from Gaussian distribution
     double std_dev = 1. / sqrt(weight.n_cols);
-    boost::random::normal_distribution<> normal_dist(0.0, std_dev);         //  Choose a distribution
+    boost::random::normal_distribution<> normal_dist(0., std_dev);         //  Choose a distribution
     boost::random::variate_generator<boost::random::mt19937 &,
         boost::random::normal_distribution<> > nrnd(rng, normal_dist);      //  link the Generator to the distribution
 
@@ -479,8 +479,12 @@ void NeuralNetworks::Initialize_Gaussian(Weight& weight, Bias& bias) {
         for (unsigned i=0; i<weight.n_rows; i++)
             weight(i, j) = nrnd();
 
+    boost::random::normal_distribution<> normal_dist1(0., 1.);         //  Choose a distribution
+    boost::random::variate_generator<boost::random::mt19937 &,
+        boost::random::normal_distribution<> > nrnd1(rng, normal_dist);      //  link the Generator to the distribution
+
     for (unsigned i=0; i<bias.n_rows; i++)
-        bias(i) = nrnd();
+        bias(i) = nrnd1();
 }
 
 
@@ -780,8 +784,8 @@ void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, d
         if ( nnParas.cost != CrossEntropy )
             error += arma::dot(t.t() - activation(nnParas.n_hlayer), t.t() - activation(nnParas.n_hlayer)) * 0.5;
         else
-            error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer))) -
-                arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
+            error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer)))
+                - arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
 
         //  accuracy estimation
         arma::uword index;
