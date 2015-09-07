@@ -21,8 +21,8 @@ Il Gu Yi
 - Adjust mini-batch size
 - Two sigmoid function type (binary or bipolar)
 - Softmax activation at output layer
-- Apply momemtum parameter
-- Apply Nesterov momemtum
+- Two types of momemtum
+ - ordinary momemtum, Nesterov momemtum
 
 
 # Requirements
