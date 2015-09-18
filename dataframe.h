@@ -25,51 +25,49 @@ template<typename dataType>
 class DataFrame {
     public:
         DataFrame();
-        DataFrame(const unsigned& _N, const unsigned& _dimension, const bool& _target);
-        void ReadDataFile(const string& filename, const unsigned& _N, const unsigned& _dimension, const string& _header, const string& _target);
+        DataFrame(const unsigned& n, const unsigned& dim, const bool& isT);
+        void ReadDataFile(const string& filename, const unsigned& N, const unsigned& dimension, const bool& header, const bool& boolTarget);
         void PrintData() const;
         void PrintTarget() const;
         void PrintTargetMatrix() const;
-        
+
         unsigned GetN() const;
         unsigned GetDimension() const;
         bool IsTarget() const;
 
         arma::Mat<dataType> GetData() const;
-        arma::uvec GetTarget() const;
+        arma::ivec GetTarget() const;
         arma::imat GetTargetMatrix() const;
-
+ 
         dataType GetData(const unsigned& i, const unsigned& j) const;
-        unsigned GetTarget(const unsigned& i) const;
-        unsigned GetTargetMatrix(const unsigned& i, const unsigned& j) const;
+        int GetTarget(const unsigned& i) const;
+        int GetTargetMatrix(const unsigned& i, const unsigned& j) const;
 
-        void SetN(const unsigned& _N);
-        void SetDimension(const unsigned& _dim);
-        void SetIsTarget(const bool& _isTarget);
-        void SetDataSize(const unsigned& _N, const unsigned& _dim);
-        void SetValidation(const arma::Mat<dataType>& _data, const arma::uvec& _target, const arma::imat _targetM, const arma::uvec& validindex);
-//      void SetTargetColumn(const unsigned& t);
+        void SetN(const unsigned& N);
+        void SetDimension(const unsigned& dim);
+        void SetIsTarget(const bool& isTarget);
+        void SetDataSize(const unsigned& N, const unsigned& dim);
+
+        void SetValidation(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex);
 
         void SetData(dataType& value, const unsigned& i, const unsigned& j);
-        void SetTargetMatrix(arma::uvec& target_class, const string& shape);
-
+        void SetTargetMatrix(arma::ivec& target_class, const string& shape);
         arma::Row<dataType> GetDataRow(const unsigned& i) const;
         arma::Col<dataType> GetDataCol(const unsigned& j) const;
+
         void SwapRowsData(const unsigned& i, const unsigned& j);
         void SwapColsData(const unsigned& i, const unsigned& j);
 
         arma::irowvec GetTargetMatrixRow(const unsigned& i) const;
-        arma::ivec GetTargetMatrixCol(const unsigned& i) const;
-        void CopyTarget(const arma::uvec& _target);
-        void CopyTargetMatrix(const arma::imat& _targetM);
+        arma::ivec GetTargetMatrixCol(const unsigned& j) const;
+
+        void CopyTarget(const arma::ivec& target);
+        void CopyTargetMatrix(const arma::imat& targetM);
 
         void LinearScalingEachFeatures(DataFrame<double>& x);
-        void LinearScalingEachFeatures(DataFrame<dataType>& valid, DataFrame<dataType>& test,
-                DataFrame<double>& train_norm, DataFrame<double>& valid_norm, DataFrame<double>& test_norm);
-
+        void LinearScalingEachFeatures(DataFrame<dataType>& v, DataFrame<dataType>& t, DataFrame<double>& x, DataFrame<double>& y, DataFrame<double>& z);
         void NormalizationEachFeatures(DataFrame<double>& x);
-        void NormalizationEachFeatures(DataFrame<dataType>& valid, DataFrame<dataType>& test,
-                DataFrame<double>& train_norm, DataFrame<double>& valid_norm, DataFrame<double>& test_norm);
+        void NormalizationEachFeatures(DataFrame<dataType>& v, DataFrame<dataType>& t, DataFrame<double>& x, DataFrame<double>& y, DataFrame<double>& z);
 
         void TransformBinaryData();
         void SplitValidationSet(DataFrame<dataType>& valid, const unsigned& n_valid);
@@ -78,7 +76,7 @@ class DataFrame {
 
     private:
         arma::Mat<dataType> data;
-        arma::uvec target;
+        arma::ivec target;
         arma::imat targetMatrix;
         unsigned N;                 //  data size
         unsigned dimension;         //  data dimension
@@ -87,45 +85,46 @@ class DataFrame {
 template<typename dataType>
 DataFrame<dataType>::DataFrame() {};
 template<typename dataType>
-DataFrame<dataType>::DataFrame(const unsigned& _N, const unsigned& _dimension, const bool& _target) :
-    N(_N), dimension(_dimension), isTarget(_target) {
+DataFrame<dataType>::DataFrame(const unsigned& n, const unsigned& dim, const bool& isT) :
+    N(n), dimension(dim), isTarget(isT) {
     if ( isTarget == true ) {
-        data(N, dimension);
-        target(N);
+        data.set_size(N, dimension);
+        target.set_size(N);
     }
     else {
-        data(N, dimension);
+        data.set_size(N, dimension);
     }
 }
 template<typename dataType>
-void DataFrame<dataType>::ReadDataFile(const string& filename, const unsigned& _N, const unsigned& _dimension,
-    const string& _header, const string& _target) {
-    N = _N;
-    dimension = _dimension;
-    data.set_size(N, dimension);
-    target.set_size(N);
+void DataFrame<dataType>::ReadDataFile(const string& filename, const unsigned& N, const unsigned& dimension,
+    const bool& header, const bool& boolTarget) {
+    this->N = N;
+    this->dimension = dimension;
+    data.set_size(this->N, this->dimension);
+    target.set_size(this->N);
 
     ifstream fin(filename.c_str());
     dataType value;
-    if ( _target == "True"  ||  _target == "T"  ||  _target == "true" ) {
+    int targetvalue;
+    if ( boolTarget == true ) {
         isTarget = true;
-        if ( _header == "True"  ||  _header == "T"  ||  _header == "true" ) {
+        if ( header == true ) {
             string dum;
             getline(fin, dum);
-            for (unsigned i=0; i<N; i++) {
-                fin >> value;
-                target(i) = (unsigned) value;
-                for (unsigned j=0; j<dimension; j++) {
+            for (unsigned i=0; i<this->N; i++) {
+                fin >> targetvalue;
+                target(i) = targetvalue;
+                for (unsigned j=0; j<this->dimension; j++) {
                     fin >> value;
                     data(i, j) = value;
                 }
             }
         }
         else {
-            for (unsigned i=0; i<N; i++) {
-                fin >> value;
-                target(i) = (unsigned) value;
-                for (unsigned j=0; j<dimension; j++) {
+            for (unsigned i=0; i<this->N; i++) {
+                fin >> targetvalue;
+                target(i) = targetvalue;
+                for (unsigned j=0; j<this->dimension; j++) {
                     fin >> value;
                     data(i, j) = value;
                 }
@@ -134,19 +133,19 @@ void DataFrame<dataType>::ReadDataFile(const string& filename, const unsigned& _
     }
     else {
         isTarget = false;
-        if ( _header == "True"  ||  _header == "T"  ||  _header == "true" ) {
+        if ( header == true ) {
             string dum;
             getline(fin, dum);
-            for (unsigned i=0; i<N; i++) {
-                for (unsigned j=0; j<dimension; j++) {
+            for (unsigned i=0; i<this->N; i++) {
+                for (unsigned j=0; j<this->dimension; j++) {
                     fin >> value;
                     data(i, j) = value;
                 }
             }
         }
         else {
-            for (unsigned i=0; i<N; i++) {
-                for (unsigned j=0; j<dimension; j++) {
+            for (unsigned i=0; i<this->N; i++) {
+                for (unsigned j=0; j<this->dimension; j++) {
                     fin >> value;
                     data(i, j) = value;
                 }
@@ -200,7 +199,7 @@ bool DataFrame<dataType>::IsTarget() const { return isTarget; }
 template<typename dataType>
 arma::Mat<dataType> DataFrame<dataType>::GetData() const { return data; }
 template<typename dataType>
-arma::uvec DataFrame<dataType>::GetTarget() const { return target; }
+arma::ivec DataFrame<dataType>::GetTarget() const { return target; }
 template<typename dataType>
 arma::imat DataFrame<dataType>::GetTargetMatrix() const { return targetMatrix; }
  
@@ -208,28 +207,28 @@ arma::imat DataFrame<dataType>::GetTargetMatrix() const { return targetMatrix; }
 template<typename dataType>
 dataType DataFrame<dataType>::GetData(const unsigned& i, const unsigned& j) const { return data(i, j); }
 template<typename dataType>
-unsigned DataFrame<dataType>::GetTarget(const unsigned& i) const { return target(i); }
+int DataFrame<dataType>::GetTarget(const unsigned& i) const { return target(i); }
 template<typename dataType>
-unsigned DataFrame<dataType>::GetTargetMatrix(const unsigned& i, const unsigned& j) const { return targetMatrix(i, j); }
+int DataFrame<dataType>::GetTargetMatrix(const unsigned& i, const unsigned& j) const { return targetMatrix(i, j); }
 
 
 template<typename dataType>
-void DataFrame<dataType>::SetN(const unsigned& _N) { N = _N; }
+void DataFrame<dataType>::SetN(const unsigned& N) { this->N = N; }
 template<typename dataType>
-void DataFrame<dataType>::SetDimension(const unsigned& _dim) { dimension = _dim; }
+void DataFrame<dataType>::SetDimension(const unsigned& dim) { dimension = dim; }
 template<typename dataType>
-void DataFrame<dataType>::SetIsTarget(const bool& _isTarget) {
-    if ( _isTarget ) isTarget = true;
-    else isTarget = false;
+void DataFrame<dataType>::SetIsTarget(const bool& isTarget) {
+    if ( isTarget ) this->isTarget = true;
+    else this->isTarget = false;
 }
 template<typename dataType>
-void DataFrame<dataType>::SetDataSize(const unsigned& _N, const unsigned& _dim) { data.set_size(_N, _dim); }
+void DataFrame<dataType>::SetDataSize(const unsigned& N, const unsigned& dim) { data.set_size(N, dim); }
 
 template<typename dataType>
-void DataFrame<dataType>::SetValidation(const arma::Mat<dataType>& _data, const arma::uvec& _target, const arma::imat _targetM, const arma::uvec& validindex) {
-    data = _data.rows(validindex);
-    target = _target(validindex);
-    targetMatrix = _targetM.rows(validindex);
+void DataFrame<dataType>::SetValidation(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex) {
+    this->data = data.rows(validindex);
+    this->target = target(validindex);
+    this->targetMatrix = targetM.rows(validindex);
 }
 
 
@@ -244,7 +243,7 @@ void DataFrame<dataType>::SetValidation(const arma::Mat<dataType>& _data, const 
 template<typename dataType>
 void DataFrame<dataType>::SetData(dataType& value, const unsigned& i, const unsigned& j) { data(i, j) = value; }
 template<typename dataType>
-void DataFrame<dataType>::SetTargetMatrix(arma::uvec& target_class, const string& shape) {
+void DataFrame<dataType>::SetTargetMatrix(arma::ivec& target_class, const string& shape) {
     unsigned n_target = target_class.n_rows;
     targetMatrix.set_size(N, n_target);
 
@@ -306,14 +305,14 @@ arma::ivec DataFrame<dataType>::GetTargetMatrixCol(const unsigned& j) const {
 
 
 template<typename dataType>
-void DataFrame<dataType>::CopyTarget(const arma::uvec& _target) {
-    target.copy_size(_target);
-    target = _target;
+void DataFrame<dataType>::CopyTarget(const arma::ivec& target) {
+    this->target.copy_size(target);
+    this->target = target;
 }
 template<typename dataType>
-void DataFrame<dataType>::CopyTargetMatrix(const arma::imat& _targetM) {
-    targetMatrix.copy_size(_targetM);
-    targetMatrix = _targetM;
+void DataFrame<dataType>::CopyTargetMatrix(const arma::imat& targetM) {
+    targetMatrix.copy_size(targetM);
+    targetMatrix = targetM;
 }
 
 
