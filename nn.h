@@ -1,7 +1,7 @@
 /***********************************************************
  * Neural networks for multi-class classification
  *
- * 2015. 06.
+ * 2015. 06. 11.
  * modified 2015. 08. 25.
  * by Il Gu Yi
 ***********************************************************/
@@ -12,30 +12,15 @@
 #include <boost/random.hpp>
 #include <armadillo>
 #include <string>
+#include "nndef.h"
+#include "nnlayer.h"
 using namespace std;
 using namespace df;
+using namespace nndef;
+using namespace layer;
 
 
 namespace nn {
-
-
-typedef arma::field<arma::mat> Weights;
-typedef arma::field<arma::vec> Biases;
-typedef arma::mat Weight;
-typedef arma::vec Bias;
-typedef arma::mat Matrix;
-typedef arma::vec Vector;
-
-
-
-typedef enum {
-    //  using cross entropy cost function
-    //  C = target * log activation + (1 - target) * log (1 - activation) 
-    CrossEntropy,
-    //  using quadratic cost function C = (target - activation)^2 / 2
-    Quadratic,
-} CostFunction_Type;
-
 
 
 typedef struct NeuralNetworkParameters {
@@ -71,19 +56,21 @@ typedef struct NeuralNetworkParameters {
 } NNParameters;
 
 
+
+
 class NeuralNetworks {
     public:
         NeuralNetworks();
-        NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-            const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
-            const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const unsigned& maxEpoch_);
+        NeuralNetworks(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
+            const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+            const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
+            const unsigned& maxEpoch);
 
         void ReadParameters(const string& filename);
-        void ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-            const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_,
-            const double& regularization_, const double& momentum_, const unsigned& minibatchSize,
-            const bool& softmax_, const unsigned& maxEpoch_);
+        void ParametersSetting(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
+            const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+            const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
+            const unsigned& maxEpoch);
         void PrintParameters() const;
         void WriteParameters(const string& filename) const;
 
@@ -94,12 +81,8 @@ class NeuralNetworks {
         unsigned GetN_class() const;
 
         void Initialize();
-        void Initialize(const Weights& weight_init, const Biases& bias_init);
+//        void Initialize(const Weights& weight_init, const Biases& bias_init);
 
-    private:
-        void Initialize_Gaussian(Weight& weight, Bias& bias);
-
-    public:
         void PrintWeights() const;
         void PrintBiases() const;
         void PrintResults() const;
@@ -107,54 +90,55 @@ class NeuralNetworks {
         void WriteBiases(const string& filename, const string& append) const;
         void WriteResults(const string& filename) const;
 
-//      void ReadResultFile(const string& filename);
 
     private:
         void NamingFile(string& filename);
         void NamingFileStep(string& filename, const unsigned& step);
-
+        
 
     public:
         template<typename dataType>
         void Training(df::DataFrame<dataType>& data, const unsigned& step);
+        template<typename dataType>
+        void Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, unsigned& step);
+        template<typename dataType>
+        void Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, df::DataFrame<dataType>& test, unsigned& step);
+
     private:
         template<typename dataType>
         void TrainingOneStep(df::DataFrame<dataType>& data);
-
-    public:
-        template<typename dataType>
-        void Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, unsigned& step);
-    private:
         template<typename dataType>
         void TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid);
-
         template<typename dataType>
-        void Validation(df::DataFrame<dataType>& valid, double& error, double& accuracy);
-
+        void TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, df::DataFrame<dataType>& test);
 
         void MiniBathces(arma::field<Vector>& minibatch);
         void InitializeDeltaParameters();
         template<typename dataType>
         void TrainingMiniBatch(df::DataFrame<dataType>& data, const Vector& minibatch, double& error);
+        template<typename dataType>
+        void TrainingMiniBatch(df::DataFrame<dataType>& data, const Vector& minibatch, double& error, double& accuracy);
 
 
         template<typename dataType>
         void FeedForward(const arma::Row<dataType>& x);
 
-        void Activation(Vector& activation, Vector& summation);
-        void SigmoidFuntion(Vector& activation, Vector& summation);
-        void TanhFuntion(Vector& activation, Vector& summation);
-        Vector DerivativeSigmoid(Vector& x);
-        Vector DerivativeTanh(Vector& x);
-        void SoftmaxActivation(Vector& activation, Vector& summation);
+        void CostFunction(double& error, const arma::ivec& t);
 
         template<typename dataType>
-        void BackPropagation(const arma::Row<dataType>& x, const arma::irowvec& t);
+        void Validation(df::DataFrame<dataType>& valid, double& error, double& accuracy);
+        template<typename dataType>
+        void Test(df::DataFrame<dataType>& valid, double& error, double& accuracy);
+
+        template<typename dataType>
+        void BackPropagation(const arma::Row<dataType>& x, const arma::ivec& t);
         
         void UpdateParameter(const unsigned& minibatchSize);
         
-        void WriteError(const string& filename, const double& error);
-        void WriteError(const string& filename, const double& error, const double& valid_error, const double& valid_accuracy);
+        void WriteError(const string& filename, const double& error, const double& accuracy);
+        void WriteError(const string& filename, const double& error, const double& accuracy, const double& valid_error, const double& valid_accuracy);
+        void WriteError(const string& filename, const double& error, const double& accuracy,
+                const double& valid_error, const double& valid_accuracy, const double& test_error, const double& test_accuracy);
 
 
     public:
@@ -163,44 +147,31 @@ class NeuralNetworks {
 
 
     private:
-        Weights weight;
-        Biases bias;
-
-        arma::field<Vector> summation;
-        arma::field<Vector> activation;
-
-        arma::field<Vector> delta;
-        Weights delta_weight;
-        Biases delta_bias;
-
-        Weights velocity_weight;
-        Biases velocity_bias;
-
+        arma::field<Layer> layers;
         NNParameters nnParas;
 };
 
 NeuralNetworks::NeuralNetworks() {};
-NeuralNetworks::NeuralNetworks(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-    const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
-    const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const unsigned& maxEpoch_) {
+NeuralNetworks::NeuralNetworks(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
+    const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+    const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
+    const unsigned& maxEpoch) {
 
-    nnParas.N_train = N_train_;
-    nnParas.dimension = dimension_;
-    nnParas.N_valid = N_valid_;
-    nnParas.N_test = N_test_;
-    nnParas.n_hiddens = n_hiddens_;
-    nnParas.n_class = n_class_;
+    nnParas.N_train = N_train;
+    nnParas.dimension = dimension;
+    nnParas.N_valid = N_valid;
+    nnParas.N_test = N_test;
+    nnParas.n_hiddens = n_hiddens;
+    nnParas.n_class = n_class;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
-    nnParas.learningRate = learningRate_;        
-    nnParas.cost = cost_;
-    nnParas.regularization = regularization_;
-    nnParas.momentum = momentum_;
-    nnParas.minibatchSize = minibatchSize_;
-    nnParas.softmax = softmax_;
-    nnParas.maxEpoch = maxEpoch_;
+    nnParas.learningRate = learningRate;        
+    nnParas.cost = cost;
+    nnParas.regularization = regularization;
+    nnParas.momentum = momentum;
+    nnParas.minibatchSize = minibatchSize;
+    nnParas.softmax = softmax;
+    nnParas.maxEpoch = maxEpoch;
 }
-
 
 
 void NeuralNetworks::ReadParameters(const string& filename) {
@@ -265,26 +236,25 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 }
 
 
+void NeuralNetworks::ParametersSetting(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
+    const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+    const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
+    const unsigned& maxEpoch) {
 
-void NeuralNetworks::ParametersSetting(const unsigned& N_train_, const unsigned& dimension_, const unsigned& N_valid_, const unsigned& N_test_,
-    const arma::uvec& n_hiddens_, const unsigned& n_class_, const double& learningRate_, const CostFunction_Type& cost_, 
-    const double& regularization_, const double& momentum_, const unsigned& minibatchSize_, const bool& softmax_,
-    const unsigned& maxEpoch_) {
-
-    nnParas.N_train = N_train_;
-    nnParas.dimension = dimension_;
-    nnParas.N_valid = N_valid_;
-    nnParas.N_test = N_test_;
-    nnParas.n_hiddens = n_hiddens_;
-    nnParas.n_class = n_class_;
+    nnParas.N_train = N_train;
+    nnParas.dimension = dimension;
+    nnParas.N_valid = N_valid;
+    nnParas.N_test = N_test;
+    nnParas.n_hiddens = n_hiddens;
+    nnParas.n_class = n_class;
     nnParas.n_hlayer = nnParas.n_hiddens.size();
-    nnParas.learningRate = learningRate_;        
-    nnParas.cost = cost_;
-    nnParas.regularization = regularization_;
-    nnParas.momentum = momentum_;
-    nnParas.minibatchSize = minibatchSize_;
-    nnParas.softmax = softmax_;
-    nnParas.maxEpoch = maxEpoch_;
+    nnParas.learningRate = learningRate;        
+    nnParas.cost = cost;
+    nnParas.regularization = regularization;
+    nnParas.momentum = momentum;
+    nnParas.minibatchSize = minibatchSize;
+    nnParas.softmax = softmax;
+    nnParas.maxEpoch = maxEpoch;
 }
 
 void NeuralNetworks::PrintParameters() const {
@@ -355,138 +325,15 @@ unsigned NeuralNetworks::GetN_test() const { return nnParas.N_test; }
 unsigned NeuralNetworks::GetN_class() const { return nnParas.n_class; }
 
 
-
 void NeuralNetworks::Initialize() {
 
-    weight.set_size(nnParas.n_hlayer+1);
-    bias.set_size(nnParas.n_hlayer+1);
-    summation.set_size(nnParas.n_hlayer+1);
-    activation.set_size(nnParas.n_hlayer+1);
-    delta.set_size(nnParas.n_hlayer+1);
-    delta_weight.set_size(nnParas.n_hlayer+1);
-    delta_bias.set_size(nnParas.n_hlayer+1);
-    velocity_weight.set_size(nnParas.n_hlayer+1);
-    velocity_bias.set_size(nnParas.n_hlayer+1);
+    layers.set_size(nnParas.n_hlayer+1);
 
-    weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
-    bias(0).set_size(nnParas.n_hiddens(0));
-    summation(0).set_size(nnParas.n_hiddens(0));
-    activation(0).set_size(nnParas.n_hiddens(0));
-    delta(0).set_size(nnParas.n_hiddens(0));
-    delta_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
-    delta_bias(0).set_size(nnParas.n_hiddens(0));
-    velocity_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
-    velocity_bias(0).set_size(nnParas.n_hiddens(0));
-    
-    for (unsigned l=1; l<nnParas.n_hlayer; l++) {
-        weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
-        bias(l).set_size(nnParas.n_hiddens(l));
-        summation(l).set_size(nnParas.n_hiddens(l));
-        activation(l).set_size(nnParas.n_hiddens(l));
-        delta(l).set_size(nnParas.n_hiddens(l));
-        delta_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
-        delta_bias(l).set_size(nnParas.n_hiddens(l));
-        velocity_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
-        velocity_bias(l).set_size(nnParas.n_hiddens(l));
-    }
-
-    weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-    summation(nnParas.n_hlayer).set_size(nnParas.n_class);
-    activation(nnParas.n_hlayer).set_size(nnParas.n_class);
-    delta(nnParas.n_hlayer).set_size(nnParas.n_class);
-    delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-    velocity_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-
-
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        Initialize_Gaussian(weight(l), bias(l));
-
-        velocity_weight(l).zeros();
-        velocity_bias(l).zeros();
-    }
+    layers(0).Initialize_Layer(nnParas.dimension, nnParas.n_hiddens(0), Sigmoid, 0.0);
+    for (unsigned l=1; l<nnParas.n_hlayer; l++)
+        layers(l).Initialize_Layer(nnParas.n_hiddens(l-1), nnParas.n_hiddens(l), Sigmoid, 0.0);
+    layers(nnParas.n_hlayer).Initialize_Layer(nnParas.n_hiddens(nnParas.n_hlayer-1), nnParas.n_class, Softmax, 0.0);
 }
-
-
-void NeuralNetworks::Initialize(const Weights& weight_init, const Biases& bias_init) {
-
-    if ( weight_init.size() != nnParas.n_hlayer + 1
-        ||  bias_init.size() != nnParas.n_hlayer + 1 ) {
-        cout << "Number of layer weight are different" << endl;
-        exit(1);
-    }
-
-    weight.set_size(nnParas.n_hlayer+1);
-    bias.set_size(nnParas.n_hlayer+1);
-    summation.set_size(nnParas.n_hlayer+1);
-    activation.set_size(nnParas.n_hlayer+1);
-    delta.set_size(nnParas.n_hlayer+1);
-    delta_weight.set_size(nnParas.n_hlayer+1);
-    delta_bias.set_size(nnParas.n_hlayer+1);
-    velocity_weight.set_size(nnParas.n_hlayer+1);
-    velocity_bias.set_size(nnParas.n_hlayer+1);
-
-    weight(0) = weight_init(0);
-    bias(0) = bias_init(0);
-    summation(0).set_size(nnParas.n_hiddens(0));
-    activation(0).set_size(nnParas.n_hiddens(0));
-    delta(0).set_size(nnParas.n_hiddens(0));
-    delta_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
-    delta_bias(0).set_size(nnParas.n_hiddens(0));
-    velocity_weight(0).set_size(nnParas.n_hiddens(0), nnParas.dimension);
-    velocity_bias(0).set_size(nnParas.n_hiddens(0));
-    
-    for (unsigned l=1; l<nnParas.n_hlayer; l++) {
-        weight(l) = weight_init(l);
-        bias(l) = bias_init(l);
-        summation(l).set_size(nnParas.n_hiddens(l));
-        activation(l).set_size(nnParas.n_hiddens(l));
-        delta(l).set_size(nnParas.n_hiddens(l));
-        delta_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
-        delta_bias(l).set_size(nnParas.n_hiddens(l));
-        velocity_weight(l).set_size(nnParas.n_hiddens(l), nnParas.n_hiddens(l-1));
-        velocity_bias(l).set_size(nnParas.n_hiddens(l));
-    }
-
-    weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-    summation(nnParas.n_hlayer).set_size(nnParas.n_class);
-    activation(nnParas.n_hlayer).set_size(nnParas.n_class);
-    delta(nnParas.n_hlayer).set_size(nnParas.n_class);
-    delta_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    delta_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-    velocity_weight(nnParas.n_hlayer).set_size(nnParas.n_class, nnParas.n_hiddens(nnParas.n_hlayer-1));
-    velocity_bias(nnParas.n_hlayer).set_size(nnParas.n_class);
-
-
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        velocity_weight(l).zeros();
-        velocity_bias(l).zeros();
-    }
-}
-
-void NeuralNetworks::Initialize_Gaussian(Weight& weight, Bias& bias) {
-
-    //  weight Initialize from Gaussian distribution
-    double std_dev = 1. / sqrt(weight.n_cols);
-    boost::random::normal_distribution<> normal_dist(0., std_dev);         //  Choose a distribution
-    boost::random::variate_generator<boost::random::mt19937 &,
-        boost::random::normal_distribution<> > nrnd(rng, normal_dist);      //  link the Generator to the distribution
-
-    for (unsigned j=0; j<weight.n_cols; j++)
-        for (unsigned i=0; i<weight.n_rows; i++)
-            weight(i, j) = nrnd();
-
-    boost::random::normal_distribution<> normal_dist1(0., 1.);         //  Choose a distribution
-    boost::random::variate_generator<boost::random::mt19937 &,
-        boost::random::normal_distribution<> > nrnd1(rng, normal_dist);      //  link the Generator to the distribution
-
-    for (unsigned i=0; i<bias.n_rows; i++)
-        bias(i) = nrnd1();
-}
-
 
 
 
@@ -494,7 +341,7 @@ void NeuralNetworks::PrintWeights() const {
 //  cout.precision(10);
 //  cout.setf(ios::fixed);
 
-    weight(0).raw_print("weights matrix between input and hidden 1");
+    layers(0).weight.raw_print("weights matrix between input and hidden 1");
     cout << endl;
 
     for (unsigned l=1; l<nnParas.n_hlayer; l++) {
@@ -506,7 +353,7 @@ void NeuralNetworks::PrintWeights() const {
         ss << l + 1;
         ment += ss.str();
 
-        weight(l).raw_print(ment);
+        layers(l).weight.raw_print(ment);
         cout << endl;
     }
 
@@ -515,7 +362,7 @@ void NeuralNetworks::PrintWeights() const {
     ment += ss.str();
     ment += " and output";
 
-    weight(nnParas.n_hlayer).raw_print(ment);
+    layers(nnParas.n_hlayer).weight.raw_print(ment);
     cout << endl;
 }
 
@@ -528,11 +375,11 @@ void NeuralNetworks::PrintBiases() const {
         stringstream ss;    ss << l+1;
         ment += ss.str();
 
-        bias(l).raw_print(ment);
+        layers(l).bias.raw_print(ment);
         cout << endl;
     }
 
-    bias(nnParas.n_hlayer).raw_print("bias vector in output");
+    layers(nnParas.n_hlayer).bias.raw_print("bias vector in output");
     cout << endl;
 }
 
@@ -547,7 +394,7 @@ void NeuralNetworks::WriteWeights(const string& filename) const {
     fsave.precision(10);
     fsave.setf(ios::fixed);
 
-    weight(0).raw_print(fsave, "weights matrix between input and hidden 1");
+    layers(0).weight.raw_print(fsave, "weights matrix between input and hidden 1");
     fsave << endl;
 
     for (unsigned l=1; l<nnParas.n_hlayer; l++) {
@@ -559,7 +406,7 @@ void NeuralNetworks::WriteWeights(const string& filename) const {
         ss << l + 1;
         ment += ss.str();
 
-        weight(l).raw_print(fsave, ment);
+        layers(l).weight.raw_print(fsave, ment);
         fsave << endl;
     }
 
@@ -568,7 +415,7 @@ void NeuralNetworks::WriteWeights(const string& filename) const {
     ment += ss.str();
     ment += " and output";
 
-    weight(nnParas.n_hlayer).raw_print(fsave, ment);
+    layers(nnParas.n_hlayer).weight.raw_print(fsave, ment);
     fsave << endl;
 }
 
@@ -587,11 +434,11 @@ void NeuralNetworks::WriteBiases(const string& filename, const string& append) c
         stringstream ss;    ss << l+1;
         ment += ss.str();
 
-        bias(l).raw_print(fsave, ment);
+        layers(l).bias.raw_print(fsave, ment);
         fsave << endl;
     }
 
-    bias(nnParas.n_hlayer).raw_print(fsave, "bias vector in output");
+    layers(nnParas.n_hlayer).bias.raw_print(fsave, "bias vector in output");
     fsave << endl;
 }
 
@@ -600,35 +447,6 @@ void NeuralNetworks::WriteResults(const string& filename) const {
     WriteBiases(filename, "append");
 }
 
-
-
-
-/*
-void NeuralNetworks::ReadResultFile(const string& filename) {
-
-    weight_u.set_size(nnParas.dimension+1, nnParas.n_hidden);
-    weight_v.set_size(nnParas.n_hidden+1, nnParas.n_class);
-
-    ifstream fin(filename);
-    string dum;
-    getline(fin, dum);
-    double value;
-    for (unsigned i=0; i<nnParas.dimension+1; i++) {
-        for (unsigned j=0; j<nnParas.n_hidden; j++) {
-            fin >> value;
-            weight_u(i, j) = value;
-        }
-    }
-
-    fin >> dum >> dum >> dum >> dum >> dum >> dum;
-    for (unsigned i=0; i<nnParas.n_hidden+1; i++) {
-        for (unsigned j=0; j<nnParas.n_class; j++) {
-            fin >> value;
-            weight_v(i, j) = value;
-        }
-    }
-}
-*/
 
 
 void NeuralNetworks::NamingFile(string& filename) {
@@ -680,6 +498,9 @@ void NeuralNetworks::NamingFileStep(string& filename, const unsigned& step) {
 }
 
 
+
+
+
 template<typename dataType>
 void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& step) {
 
@@ -700,28 +521,6 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, const unsigned& ste
         WriteResults(resfile);
     }
 }
-
-
-template<typename dataType>
-void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data) {
-
-    arma::field<Vector> minibatch;
-    MiniBathces(minibatch);
-
-    double error = 0.0;
-
-    for (unsigned n=0; n<minibatch.size(); n++)
-        TrainingMiniBatch(data, minibatch(n), error);
-
-    error /= (double) nnParas.N_train;
-
-    string errorfile = "nn.error.";
-    NamingFile(errorfile);
-    WriteError(errorfile, error);
-}
-
-
-
 
 template<typename dataType>
 void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, unsigned& step) {
@@ -744,6 +543,47 @@ void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataT
     }
 }
 
+template<typename dataType>
+void NeuralNetworks::Training(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, df::DataFrame<dataType>& test, unsigned& step) {
+
+    string parafile = "nn.parameter.";
+    NamingFile(parafile);
+    WriteParameters(parafile);
+
+    for (unsigned epoch=0; epoch<nnParas.maxEpoch; epoch++) {
+        cout << "epochs: " << epoch << endl;
+        double remain_epoch = (double) epoch / (double) nnParas.maxEpoch * 100;
+        cout << "remaining epochs ratio: " << remain_epoch << "%" << endl << endl;
+        TrainingOneStep(data, valid, test);
+    }
+    
+    if ( step % 10 == 0 ) {
+        string resfile = "nn.result.";
+        NamingFileStep(resfile, step);
+        WriteResults(resfile);
+    }
+}
+
+
+
+
+template<typename dataType>
+void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data) {
+
+    arma::field<Vector> minibatch;
+    MiniBathces(minibatch);
+
+    double error = 0.0;
+    double accuracy = 0.0;
+    for (unsigned n=0; n<minibatch.size(); n++)
+        TrainingMiniBatch(data, minibatch(n), error, accuracy);
+    error /= (double) nnParas.N_train;
+    accuracy /= (double) nnParas.N_train;
+
+    string errorfile = "nn.error.";
+    NamingFile(errorfile);
+    WriteError(errorfile, error, accuracy);
+}
 
 template<typename dataType>
 void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid) {
@@ -752,9 +592,11 @@ void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFram
     MiniBathces(minibatch);
 
     double error = 0.0;
+    double accuracy = 0.0;
     for (unsigned n=0; n<minibatch.size(); n++)
-        TrainingMiniBatch(data, minibatch(n), error);
+        TrainingMiniBatch(data, minibatch(n), error, accuracy);
     error /= (double) nnParas.N_train;
+    accuracy /= (double) nnParas.N_train;
 
 
     //  validation test
@@ -765,39 +607,37 @@ void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFram
 
     string errorfile = "nn.error.";
     NamingFile(errorfile);
-    WriteError(errorfile, error, valid_error, valid_accuracy);
+    WriteError(errorfile, error, accuracy, valid_error, valid_accuracy);
 }
-
 
 template<typename dataType>
-void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, double& accuracy) {
+void NeuralNetworks::TrainingOneStep(df::DataFrame<dataType>& data, df::DataFrame<dataType>& valid, df::DataFrame<dataType>& test) {
 
-    for (unsigned n=0; n<nnParas.N_valid; n++) {
-        //  Pick one record
-        arma::Row<dataType> x = valid.GetDataRow(n);
-        arma::irowvec t = valid.GetTargetMatrixRow(n);
+    arma::field<Vector> minibatch;
+    MiniBathces(minibatch);
 
-        //  FeedForward learning
-        FeedForward(x);
+    double error = 0.0;
+    double accuracy = 0.0;
+    for (unsigned n=0; n<minibatch.size(); n++)
+        TrainingMiniBatch(data, minibatch(n), error, accuracy);
+    error /= (double) nnParas.N_train;
+    accuracy /= (double) nnParas.N_train;
 
-        //  Error estimation
-        if ( nnParas.cost != CrossEntropy )
-            error += arma::dot(t.t() - activation(nnParas.n_hlayer), t.t() - activation(nnParas.n_hlayer)) * 0.5;
-        else
-            error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer)))
-                - arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
 
-        //  accuracy estimation
-        arma::uword index;
-        double max_value = activation(nnParas.n_hlayer).max(index);
-        if ( index != valid.GetTarget(n) ) accuracy += 1.;
-    }
-    error /= (double) nnParas.N_valid;
-    accuracy /= (double) nnParas.N_valid;
+    //  validation test
+    double valid_error = 0.0;
+    double valid_accuracy = 0.0;
+    Validation(valid, valid_error, valid_accuracy);
+
+    //  validation test
+    double test_error = 0.0;
+    double test_accuracy = 0.0;
+    Test(test, test_error, test_accuracy);
+
+    string errorfile = "nn.error.";
+    NamingFile(errorfile);
+    WriteError(errorfile, error, accuracy, valid_error, valid_accuracy, test_error, test_accuracy);
 }
-
-
-
 
 
 void NeuralNetworks::MiniBathces(arma::field<Vector>& minibatch) {
@@ -841,10 +681,11 @@ void NeuralNetworks::MiniBathces(arma::field<Vector>& minibatch) {
 void NeuralNetworks::InitializeDeltaParameters() {
 
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        delta_weight(l).zeros();
-        delta_bias(l).zeros();
+        layers(l).delta_weight.zeros();
+        layers(l).delta_bias.zeros();
     }
 }
+
 
 template<typename dataType>
 void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vector& minibatch, double& error) {
@@ -861,14 +702,40 @@ void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vect
         FeedForward(x);
 
         //  Error estimation
-        if ( nnParas.cost != CrossEntropy )
-            error += arma::dot(t.t() - activation(nnParas.n_hlayer), t.t() - activation(nnParas.n_hlayer)) * 0.5;
-        else
-            error += - arma::dot(t.t(), log(activation(nnParas.n_hlayer))) -
-                arma::dot(1. - t.t(), log(1. - activation(nnParas.n_hlayer)));
+        CostFunction(error, t.t());
 
         //  Error Back Propagation
-        BackPropagation(x, t);
+        BackPropagation(x, t.t());
+    }
+
+    //  Update Parameters
+    UpdateParameter(minibatch.size());
+}
+
+template<typename dataType>
+void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vector& minibatch, double& error, double& accuracy) {
+
+    InitializeDeltaParameters();
+
+    for (unsigned n=0; n<minibatch.size(); n++) {
+
+        //  Pick one record
+        arma::Row<dataType> x = data.GetDataRow(minibatch(n));
+        arma::irowvec t = data.GetTargetMatrixRow(minibatch(n));
+
+        //  FeedForward learning
+        FeedForward(x);
+
+        //  Error estimation
+        CostFunction(error, t.t());
+
+        //  accuracy estimation
+        arma::uword index;
+        double max_value = layers(nnParas.n_hlayer).activation.max(index);
+        if ( index != data.GetTarget(n) ) accuracy += 1.;
+
+        //  Error Back Propagation
+        BackPropagation(x, t.t());
     }
 
     //  Update Parameters
@@ -880,105 +747,118 @@ void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vect
 template<typename dataType>
 void NeuralNetworks::FeedForward(const arma::Row<dataType>& x) {
 
-    summation(0) = weight(0) * x.t() + bias(0);
-    Activation(activation(0), summation(0));
+    layers(0).Forward(x.t());
+    for (unsigned l=1; l<nnParas.n_hlayer+1; l++)
+        layers(l).Forward(layers(l-1).activation);
+}
 
-    for (unsigned i=1; i<nnParas.n_hlayer; i++) {
-        summation(i) = weight(i) * activation(i-1) + bias(i);
-        Activation(activation(i), summation(i));
-    }
 
-    summation(nnParas.n_hlayer) = weight(nnParas.n_hlayer) * activation(nnParas.n_hlayer-1) + bias(nnParas.n_hlayer);
-    if ( nnParas.softmax )
-        SoftmaxActivation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
+void NeuralNetworks::CostFunction(double& error, const arma::ivec& t) {
+    if ( nnParas.cost != CrossEntropy )
+        error += arma::dot(t - layers(nnParas.n_hlayer).activation, t - layers(nnParas.n_hlayer).activation) * 0.5;
     else
-        Activation(activation(nnParas.n_hlayer), summation(nnParas.n_hlayer));
-}
+        error += - arma::dot(t, log(layers(nnParas.n_hlayer).activation)) -
+            arma::dot(1. - t, log(1. - layers(nnParas.n_hlayer).activation));
 
-
-void NeuralNetworks::Activation(Vector& activation, Vector& summation) {
-    SigmoidFuntion(activation, summation);
-//    TanhFuntion(activation, summation);
-}
-
-void NeuralNetworks::SigmoidFuntion(Vector& activation, Vector& summation) {
-    activation = 1. / (1. + exp(-summation));
-}
-
-void NeuralNetworks::TanhFuntion(Vector& activation, Vector& summation) {
-    activation = 2. / (1. + exp(-summation)) - 1.;
-}
-
-Vector NeuralNetworks::DerivativeSigmoid(Vector& x) {
-    Vector temp(x.size());
-    SigmoidFuntion(temp, x);
-
-    return temp % (1. - temp);
-}
-
-Vector NeuralNetworks::DerivativeTanh(Vector& x) {
-    Vector temp(x.size());
-    TanhFuntion(temp, x);
-
-    return (1. + temp) % (1. - temp) * 0.5;
-}
-
-
-
-
-void NeuralNetworks::SoftmaxActivation(Vector& activation, Vector& summation) {
-
-    activation = exp(summation) / arma::sum(exp(summation));
+    double w_sum = 0.;
+    if ( nnParas.regularization != 0. ) {
+        for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
+            w_sum += arma::accu(layers(l).weight);
+        w_sum *= nnParas.regularization * .5;
+    }
+    error += w_sum;
 }
 
 
 
 
 template<typename dataType>
-void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::irowvec& t) {
+void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, double& accuracy) {
 
-    if ( nnParas.cost != CrossEntropy ) {
-        delta(nnParas.n_hlayer) = (activation(nnParas.n_hlayer) - t.t()) % DerivativeSigmoid(summation(nnParas.n_hlayer));
-        for (unsigned i=nnParas.n_hlayer-1; i>0; i--)
-            delta(i) = (delta(i+1).t() * weight(i+1)).t() % DerivativeSigmoid(summation(i));
-        delta(0) = (delta(1).t() * weight(1)).t() % DerivativeSigmoid(summation(0));
+    for (unsigned n=0; n<nnParas.N_valid; n++) {
+
+        //  Pick one record
+        arma::Row<dataType> x = valid.GetDataRow(n);
+        arma::irowvec t = valid.GetTargetMatrixRow(n);
+
+        //  FeedForward learning
+        FeedForward(x);
+
+        //  Error estimation
+        CostFunction(error, t.t());
+
+        //  accuracy estimation
+        arma::uword index;
+        double max_value = layers(nnParas.n_hlayer).activation.max(index);
+        if ( index != valid.GetTarget(n) ) accuracy += 1.;
     }
-    else {
-        delta(nnParas.n_hlayer) = (activation(nnParas.n_hlayer) - t.t());
-        for (unsigned i=nnParas.n_hlayer-1; i>0; i--)
-            delta(i) = (delta(i+1).t() * weight(i+1)).t() % DerivativeSigmoid(summation(i));
-        delta(0) = (delta(1).t() * weight(1)).t() % DerivativeSigmoid(summation(0));
+    error /= (double) nnParas.N_valid;
+    accuracy /= (double) nnParas.N_valid;
+}
+
+template<typename dataType>
+void NeuralNetworks::Test(df::DataFrame<dataType>& test, double& error, double& accuracy) {
+
+    for (unsigned n=0; n<nnParas.N_test; n++) {
+
+        //  Pick one record
+        arma::Row<dataType> x = test.GetDataRow(n);
+        arma::irowvec t = test.GetTargetMatrixRow(n);
+
+        //  FeedForward learning
+        FeedForward(x);
+
+        //  Error estimation
+        CostFunction(error, t.t());
+
+        //  accuracy estimation
+        arma::uword index;
+        double max_value = layers(nnParas.n_hlayer).activation.max(index);
+        if ( index != test.GetTarget(n) ) accuracy += 1.;
     }
+    error /= (double) nnParas.N_test;
+    accuracy /= (double) nnParas.N_test;
+}
+
+
+
+template<typename dataType>
+void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::ivec& t) {
+
+    layers(nnParas.n_hlayer).Backward(t, nnParas.cost);
+    for (unsigned l=nnParas.n_hlayer-1; l>0; l--)
+        layers(l).Backward(layers(l+1));
+    layers(0).Backward(layers(1));
 
 
 //  Cumulation of delta_weight and delta_bias in minibatch
-    delta_weight(0) += delta(0) * x;
-    delta_bias(0) += delta(0);
-
-    for (unsigned l=1; l<nnParas.n_hlayer+1; l++) {
-        delta_weight(l) += delta(l) * activation(l-1).t();
-        delta_bias(l) += delta(l);
-    }
+    layers(0).Cumulation(x);
+    for (unsigned l=1; l<nnParas.n_hlayer+1; l++)
+        layers(l).Cumulation(layers(l-1).activation.t());
 }
 
 
 void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
 
     //  Nesterov Momentum
-    Weights velocity_weight_prev = velocity_weight;
-    Biases velocity_bias_prev = velocity_bias;
+    Weights velocity_weight_prev(nnParas.n_hlayer+1);
+    Biases velocity_bias_prev(nnParas.n_hlayer+1);
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
+        velocity_weight_prev(l) = layers(l).velocity_weight;
+        velocity_bias_prev(l) = layers(l).velocity_bias;
+    }
 
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        velocity_weight(l) = nnParas.momentum * velocity_weight(l)
-                            - weight(l) * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
-                            - nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
-        velocity_bias(l) = nnParas.momentum * velocity_bias(l)
-                            - nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
+        layers(l).velocity_weight = nnParas.momentum * layers(l).velocity_weight
+                            - layers(l).weight * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
+                            - nnParas.learningRate * layers(l).delta_weight / (double) minibatchSize;
+        layers(l).velocity_bias = nnParas.momentum * layers(l).velocity_bias
+                            - nnParas.learningRate * layers(l).delta_bias / (double) minibatchSize;
     }
  
     for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        weight(l) += (1. + nnParas.momentum) * velocity_weight(l) - nnParas.momentum * velocity_weight_prev(l);
-        bias(l) += (1. + nnParas.momentum) * velocity_bias(l) - nnParas.momentum * velocity_bias_prev(l);
+        layers(l).weight += (1. + nnParas.momentum) * layers(l).velocity_weight - nnParas.momentum * velocity_weight_prev(l);
+        layers(l).bias += (1. + nnParas.momentum) * layers(l).velocity_bias - nnParas.momentum * velocity_bias_prev(l);
     }
 
     //  Momentum
@@ -1006,15 +886,24 @@ void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
 }
 
 
-void NeuralNetworks::WriteError(const string& filename, const double& error) {
+void NeuralNetworks::WriteError(const string& filename, const double& error, const double& accuracy) {
     ofstream fsave(filename.c_str(), fstream::out | fstream::app);
-    fsave << error << endl;
+    fsave << error << " " << accuracy << endl;
     fsave.close();
 }
 
-void NeuralNetworks::WriteError(const string& filename, const double& error, const double& valid_error, const double& valid_accuracy) {
+void NeuralNetworks::WriteError(const string& filename, const double& error, const double& accuracy, const double& valid_error, const double& valid_accuracy) {
     ofstream fsave(filename.c_str(), fstream::out | fstream::app);
-    fsave << error << " " << valid_error << " " << valid_accuracy << endl;
+    fsave << error << " " << accuracy << " " << valid_error << " " << valid_accuracy << endl;
+    fsave.close();
+}
+
+void NeuralNetworks::WriteError(const string& filename, const double& error, const double& accuracy, 
+        const double& valid_error, const double& valid_accuracy, const double& test_error, const double& test_accuracy) {
+    ofstream fsave(filename.c_str(), fstream::out | fstream::app);
+    fsave << error << " " << accuracy << " " 
+        << valid_error << " " << valid_accuracy << " "
+        << test_error << " " << test_accuracy << endl;
     fsave.close();
 }
 
@@ -1031,7 +920,7 @@ void NeuralNetworks::Test(df::DataFrame<dataType>& data, arma::uvec& predict, un
         FeedForward(x);
 
         arma::uword index;
-        double max_value = activation(nnParas.n_hlayer).max(index);
+        double max_value = layers(nnParas.n_hlayer).activation.max(index);
         predict(n) = index;
     }
 
@@ -1042,7 +931,6 @@ void NeuralNetworks::Test(df::DataFrame<dataType>& data, arma::uvec& predict, un
     predict.raw_print(fsave, "predeict test data");
     fsave.close();
 }
-
 
 
 
