@@ -48,19 +48,18 @@ class DataFrame {
         void SetIsTarget(const bool& isTarget);
         void SetDataSize(const unsigned& N, const unsigned& dim);
 
-        void SetValidation(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex);
+        void SetSubset(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex);
 
         void SetData(dataType& value, const unsigned& i, const unsigned& j);
         void SetTargetMatrix(arma::ivec& target_class, const string& shape);
+
         arma::Row<dataType> GetDataRow(const unsigned& i) const;
         arma::Col<dataType> GetDataCol(const unsigned& j) const;
-
         void SwapRowsData(const unsigned& i, const unsigned& j);
         void SwapColsData(const unsigned& i, const unsigned& j);
 
         arma::irowvec GetTargetMatrixRow(const unsigned& i) const;
         arma::ivec GetTargetMatrixCol(const unsigned& j) const;
-
         void CopyTarget(const arma::ivec& target);
         void CopyTargetMatrix(const arma::imat& targetM);
 
@@ -71,7 +70,7 @@ class DataFrame {
 
         void TransformBinaryData();
         void SplitValidationSet(DataFrame<dataType>& valid, const unsigned& n_valid);
-
+        void SplitValidTestSet(DataFrame<dataType>& valid, const unsigned& n_valid, DataFrame<dataType>& test, const unsigned& n_test);
 
 
     private:
@@ -156,6 +155,8 @@ void DataFrame<dataType>::ReadDataFile(const string& filename, const unsigned& N
     fin.close();
 }
 
+
+
 template<typename dataType>
 void DataFrame<dataType>::PrintData() const {
 //  cout.precision(6);
@@ -225,11 +226,13 @@ template<typename dataType>
 void DataFrame<dataType>::SetDataSize(const unsigned& N, const unsigned& dim) { data.set_size(N, dim); }
 
 template<typename dataType>
-void DataFrame<dataType>::SetValidation(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex) {
-    this->data = data.rows(validindex);
-    this->target = target(validindex);
-    this->targetMatrix = targetM.rows(validindex);
+void DataFrame<dataType>::SetSubset(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& index) {
+    this->data = data.rows(index);
+    this->target = target(index);
+    this->targetMatrix = targetM.rows(index);
 }
+
+
 
 
 //template<typename dataType>
@@ -511,12 +514,47 @@ void DataFrame<dataType>::SplitValidationSet(DataFrame<dataType>& valid, const u
     valid.SetN(n_valid);
     valid.SetDimension(dimension);
     valid.SetIsTarget(isTarget);
-    valid.SetValidation(data, target, targetMatrix, validindex);
+    valid.SetSubset(data, target, targetMatrix, validindex);
 
     data = data.rows(trainindex);
     target = target(trainindex);
     targetMatrix = targetMatrix.rows(trainindex);
     N -= n_valid;
+}
+
+template<typename dataType>
+void DataFrame<dataType>::SplitValidTestSet(DataFrame<dataType>& valid, const unsigned& n_valid, DataFrame<dataType>& test, const unsigned& n_test) {
+
+    boost::random::uniform_real_distribution<> uniform_real_dist(0, 1);        //  Choose a distribution
+    boost::random::variate_generator<boost::mt19937 &,
+        boost::random::uniform_real_distribution<> > urnd(rng, uniform_real_dist);    //  link the Generator to the distribution
+
+    arma::vec rand_data(N);
+    for (unsigned n=0; n<N; n++)
+        rand_data(n) = urnd();
+    arma::uvec shuffleindex = sort_index(rand_data);
+    arma::uvec trainindex = shuffleindex.head_rows(N-n_valid);
+    arma::uvec testindex = shuffleindex.tail_rows(n_test);
+
+    arma::uvec valid_temp(n_valid);
+    for (unsigned n=0; n<n_valid; n++)
+        valid_temp(n) = N-n_valid-n_test + n;
+    arma::uvec validindex = shuffleindex(valid_temp);
+
+    valid.SetN(n_valid);
+    valid.SetDimension(dimension);
+    valid.SetIsTarget(isTarget);
+    valid.SetSubset(data, target, targetMatrix, validindex);
+
+    test.SetN(n_test);
+    test.SetDimension(dimension);
+    test.SetIsTarget(isTarget);
+    test.SetSubset(data, target, targetMatrix, testindex);
+
+    data = data.rows(trainindex);
+    target = target(trainindex);
+    targetMatrix = targetMatrix.rows(trainindex);
+    N -= n_valid + n_test;
 }
 
 
