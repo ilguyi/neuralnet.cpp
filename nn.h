@@ -763,7 +763,7 @@ void NeuralNetworks::CostFunction(double& error, const arma::ivec& t) {
     double w_sum = 0.;
     if ( nnParas.regularization != 0. ) {
         for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
-            w_sum += arma::accu(layers(l).weight);
+            w_sum += arma::accu(layers(l).weight % layers(l).weight);
         w_sum *= nnParas.regularization * .5;
     }
     error += w_sum;
