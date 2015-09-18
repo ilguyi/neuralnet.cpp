@@ -2,7 +2,7 @@
  * Data frame for machine learning (NN, RBM, DBN, etc)
  *
  * 2015. 06.
- * modified 2015. 08. 04.
+ * modified 2015. 09. 18.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -18,12 +18,6 @@ namespace df {
 
 //  global variable rng for simplicity
 boost::random::mt19937 rng(time(0));    //  Pick the Random Number Generator method
-
-
-typedef enum {
-    Binary,
-    Bipolar,
-} Sigmoid_Type;
 
 
 
@@ -57,7 +51,7 @@ class DataFrame {
 //      void SetTargetColumn(const unsigned& t);
 
         void SetData(dataType& value, const unsigned& i, const unsigned& j);
-        void SetTargetMatrix(arma::uvec& target_class, const Sigmoid_Type& shape_sigmoid);
+        void SetTargetMatrix(arma::uvec& target_class, const string& shape);
 
         arma::Row<dataType> GetDataRow(const unsigned& i) const;
         arma::Col<dataType> GetDataCol(const unsigned& j) const;
@@ -250,16 +244,16 @@ void DataFrame<dataType>::SetValidation(const arma::Mat<dataType>& _data, const 
 template<typename dataType>
 void DataFrame<dataType>::SetData(dataType& value, const unsigned& i, const unsigned& j) { data(i, j) = value; }
 template<typename dataType>
-void DataFrame<dataType>::SetTargetMatrix(arma::uvec& target_class, const Sigmoid_Type& shape_sigmoid) {
+void DataFrame<dataType>::SetTargetMatrix(arma::uvec& target_class, const string& shape) {
     unsigned n_target = target_class.n_rows;
     targetMatrix.set_size(N, n_target);
 
     int true_class;
     int false_class;
-    if ( shape_sigmoid == Binary ) {
+    if ( shape == "Binary" ) {
         true_class = 1;        false_class = 0;
     }
-    else if ( shape_sigmoid == Bipolar ) {
+    else if ( shape == "Bipolar" ) {
         true_class = 1;        false_class = -1;
     }
     else {
@@ -525,8 +519,6 @@ void DataFrame<dataType>::SplitValidationSet(DataFrame<dataType>& valid, const u
     targetMatrix = targetMatrix.rows(trainindex);
     N -= n_valid;
 }
-
-
 
 
 
