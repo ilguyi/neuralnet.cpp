@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification
  *
  * 2015. 06. 11.
- * modified 2015. 08. 25.
+ * modified 2015. 09. 19.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -732,7 +732,7 @@ void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vect
         //  accuracy estimation
         arma::uword index;
         double max_value = layers(nnParas.n_hlayer).activation.max(index);
-        if ( index != data.GetTarget(n) ) accuracy += 1.;
+        if ( index != data.GetTarget(minibatch(n)) ) accuracy += 1.;
 
         //  Error Back Propagation
         BackPropagation(x, t.t());
@@ -760,13 +760,14 @@ void NeuralNetworks::CostFunction(double& error, const arma::ivec& t) {
         error += - arma::dot(t, log(layers(nnParas.n_hlayer).activation)) -
             arma::dot(1. - t, log(1. - layers(nnParas.n_hlayer).activation));
 
-    double w_sum = 0.;
+/*    double w_sum = 0.;
     if ( nnParas.regularization != 0. ) {
         for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
             w_sum += arma::accu(layers(l).weight % layers(l).weight);
         w_sum *= nnParas.regularization * .5;
     }
     error += w_sum;
+    */
 }
 
 
