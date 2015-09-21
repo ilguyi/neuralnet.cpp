@@ -2,7 +2,7 @@
  * Neural networks for multi-class classification
  *
  * 2015. 06. 11.
- * modified 2015. 09. 19.
+ * modified 2015. 09. 21.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -760,14 +760,13 @@ void NeuralNetworks::CostFunction(double& error, const arma::ivec& t) {
         error += - arma::dot(t, log(layers(nnParas.n_hlayer).activation)) -
             arma::dot(1. - t, log(1. - layers(nnParas.n_hlayer).activation));
 
-/*    double w_sum = 0.;
+    double w_sum = 0.;
     if ( nnParas.regularization != 0. ) {
         for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
             w_sum += arma::accu(layers(l).weight % layers(l).weight);
         w_sum *= nnParas.regularization * .5;
     }
     error += w_sum;
-    */
 }
 
 
@@ -841,49 +840,14 @@ void NeuralNetworks::BackPropagation(const arma::Row<dataType>& x, const arma::i
 
 void NeuralNetworks::UpdateParameter(const unsigned& minibatchSize) {
 
-    //  Nesterov Momentum
-    Weights velocity_weight_prev(nnParas.n_hlayer+1);
-    Biases velocity_bias_prev(nnParas.n_hlayer+1);
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        velocity_weight_prev(l) = layers(l).velocity_weight;
-        velocity_bias_prev(l) = layers(l).velocity_bias;
-    }
-
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        layers(l).velocity_weight = nnParas.momentum * layers(l).velocity_weight
-                            - layers(l).weight * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
-                            - nnParas.learningRate * layers(l).delta_weight / (double) minibatchSize;
-        layers(l).velocity_bias = nnParas.momentum * layers(l).velocity_bias
-                            - nnParas.learningRate * layers(l).delta_bias / (double) minibatchSize;
-    }
- 
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        layers(l).weight += (1. + nnParas.momentum) * layers(l).velocity_weight - nnParas.momentum * velocity_weight_prev(l);
-        layers(l).bias += (1. + nnParas.momentum) * layers(l).velocity_bias - nnParas.momentum * velocity_bias_prev(l);
-    }
-
-    //  Momentum
-/*    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        velocity_weight(l) = nnParas.momentum * velocity_weight(l)
-                            - weight(l) * nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train
-                            - nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
-        velocity_bias(l) = nnParas.momentum * velocity_bias(l)
-                            - nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
-    }
-
-    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        weight(l) += velocity_weight(l);
-        bias(l) += velocity_bias(l);
-    }
-    */
-
-    //  Without Momentum
-/*    for (unsigned l=0; l<nnParas.n_hlayer+1; l++) {
-        weight(l) *= (1. - nnParas.regularization * nnParas.learningRate / (double) nnParas.N_train);
-        weight(l) -= nnParas.learningRate * delta_weight(l) / (double) minibatchSize;
-        bias(l) -= nnParas.learningRate * delta_bias(l) / (double) minibatchSize;
-    }
-    */
+    for (unsigned l=0; l<nnParas.n_hlayer+1; l++)
+        //  Without Momentum
+        //layers(l).WithoutMomentum(nnParas.learningRate, nnParas.regularization, nnParas.N_train, minibatchSize);
+        //  Momentum
+        //layers(l).Momentum(nnParas.learningRate, nnParas.regularization, nnParas.momentum, nnParas.N_train, minibatchSize);
+        //  Nesterov Momentum
+        layers(l).NesterovMomentum(nnParas.learningRate, nnParas.regularization, nnParas.momentum,
+                nnParas.N_train, minibatchSize);
 }
 
 
