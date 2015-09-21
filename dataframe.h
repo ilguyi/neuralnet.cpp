@@ -2,7 +2,7 @@
  * Data frame for machine learning (NN, RBM, DBN, etc)
  *
  * 2015. 06.
- * modified 2015. 09. 18.
+ * modified 2015. 09. 20.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -533,7 +533,7 @@ void DataFrame<dataType>::SplitValidTestSet(DataFrame<dataType>& valid, const un
     for (unsigned n=0; n<N; n++)
         rand_data(n) = urnd();
     arma::uvec shuffleindex = sort_index(rand_data);
-    arma::uvec trainindex = shuffleindex.head_rows(N-n_valid);
+    arma::uvec trainindex = shuffleindex.head_rows(N-n_valid-n_test);
     arma::uvec testindex = shuffleindex.tail_rows(n_test);
 
     arma::uvec valid_temp(n_valid);
