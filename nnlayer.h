@@ -3,7 +3,7 @@
  * Layer class
  *
  * 2015. 08. 25.
- * modified 2015. 08. 25.
+ * modified 2015. 09. 21.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -41,6 +41,14 @@ class Layer {
         template<typename dataType>
         void Cumulation(const arma::Row<dataType>& x);
         void Cumulation(const arma::rowvec& x);
+
+        void WithoutMomentum(const double& learningRate, const double& regularization,
+                const unsigned& N_train, const unsigned& minibatchSize);
+        void Momentum(const double& learningRate, const double& regularization,
+                const double& momentum, const unsigned& N_train, const unsigned& minibatchSize);
+        void NesterovMomentum(const double& learningRate, const double& regularization,
+                const double& momentum, const unsigned& N_train, const unsigned& minibatchSize);
+
 
 
     public:
@@ -227,6 +235,40 @@ void Layer::Cumulation(const arma::rowvec& x) {
     cout << "Cumulation delta_bias" << endl;
     cout << delta_bias << endl;
     */
+}
+
+
+void Layer::WithoutMomentum(const double& learningRate, const double& regularization, const unsigned& N_train, const unsigned& minibatchSize) {
+
+    this->weight *= (1. - regularization * learningRate / (double) N_train);
+    this->weight -= learningRate * this->delta_weight / (double) minibatchSize;
+    this->bias -= learningRate * this->delta_bias / (double) minibatchSize;
+}
+
+void Layer::Momentum(const double& learningRate, const double& regularization,
+        const double& momentum, const unsigned& N_train, const unsigned& minibatchSize) {
+
+    this->velocity_weight = momentum * this->velocity_weight
+            - this->weight * regularization * learningRate / (double) N_train
+            - learningRate * this->delta_weight / (double) minibatchSize;
+    this->weight += this->velocity_weight;
+
+    this->velocity_bias = momentum * this->velocity_bias - learningRate * this->delta_bias / (double) minibatchSize;
+    this->bias += this->velocity_bias;
+}
+
+void Layer::NesterovMomentum(const double& learningRate, const double& regularization,
+        const double& momentum, const unsigned& N_train, const unsigned& minibatchSize) {
+
+    Weight velocity_weight_prev = this->velocity_weight;
+    Bias velocity_bias_prev = this->velocity_bias;
+
+    this->velocity_weight = momentum * this->velocity_weight - this->weight * regularization * learningRate / (double) N_train
+        - learningRate * this->delta_weight / (double) minibatchSize;
+    this->weight += (1. + momentum) * this->velocity_weight - momentum * velocity_weight_prev;
+
+    this->velocity_bias = momentum * this->velocity_bias - learningRate * this->delta_bias / (double) minibatchSize;
+    this->bias += (1. + momentum) * this->velocity_bias - momentum * velocity_bias_prev;
 }
 
 
