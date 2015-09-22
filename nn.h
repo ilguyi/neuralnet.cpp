@@ -37,6 +37,7 @@ typedef struct NeuralNetworkParameters {
         maxEpoch(100) {
             n_hiddens;
             n_hlayer = n_hiddens.size();
+            target_class;
         };
 
     unsigned N_train;
@@ -44,8 +45,9 @@ typedef struct NeuralNetworkParameters {
     unsigned N_valid;
     unsigned N_test;
     arma::uvec n_hiddens;
-    unsigned n_class;
     unsigned n_hlayer;
+    arma::ivec target_class;
+    unsigned n_class;
     double learningRate;
     CostFunction_Type cost;
     double regularization;
@@ -62,13 +64,13 @@ class NeuralNetworks {
     public:
         NeuralNetworks();
         NeuralNetworks(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
-            const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+            const arma::uvec& n_hiddens, const arma::ivec& target_class, const double& learningRate, const CostFunction_Type& cost, 
             const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
             const unsigned& maxEpoch);
 
         void ReadParameters(const string& filename);
         void ParametersSetting(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
-            const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+            const arma::uvec& n_hiddens, const arma::ivec& target_class, const double& learningRate, const CostFunction_Type& cost, 
             const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
             const unsigned& maxEpoch);
         void PrintParameters() const;
@@ -79,6 +81,7 @@ class NeuralNetworks {
         unsigned GetN_valid() const;
         unsigned GetN_test() const;
         unsigned GetN_class() const;
+        arma::ivec GetTargetClass() const;
 
         void Initialize();
 //        void Initialize(const Weights& weight_init, const Biases& bias_init);
@@ -153,7 +156,7 @@ class NeuralNetworks {
 
 NeuralNetworks::NeuralNetworks() {};
 NeuralNetworks::NeuralNetworks(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
-    const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+    const arma::uvec& n_hiddens, const arma::ivec& target_class, const double& learningRate, const CostFunction_Type& cost, 
     const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
     const unsigned& maxEpoch) {
 
@@ -162,7 +165,8 @@ NeuralNetworks::NeuralNetworks(const unsigned& N_train, const unsigned& dimensio
     nnParas.N_valid = N_valid;
     nnParas.N_test = N_test;
     nnParas.n_hiddens = n_hiddens;
-    nnParas.n_class = n_class;
+    nnParas.target_class = target_class;
+    nnParas.n_class = nnParas.target_class.size();
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate;        
     nnParas.cost = cost;
@@ -199,7 +203,12 @@ void NeuralNetworks::ReadParameters(const string& filename) {
     nnParas.n_hlayer = nnParas.n_hiddens.size();
 
     getline(fin, s);    getline(fin, s);
-    nnParas.n_class = stoi(s);
+    stringstream sss(s);
+    while ( getline(sss, s, ' ') ) {
+        nnParas.target_class.resize(nnParas.target_class.size()+1);
+        nnParas.target_class(nnParas.target_class.size()-1) = stoi(s);
+    }
+    nnParas.n_class = nnParas.target_class.size();
 
     getline(fin, s);    getline(fin, s);
     nnParas.learningRate = stod(s);
@@ -237,7 +246,7 @@ void NeuralNetworks::ReadParameters(const string& filename) {
 
 
 void NeuralNetworks::ParametersSetting(const unsigned& N_train, const unsigned& dimension, const unsigned& N_valid, const unsigned& N_test,
-    const arma::uvec& n_hiddens, const unsigned& n_class, const double& learningRate, const CostFunction_Type& cost, 
+    const arma::uvec& n_hiddens, const arma::ivec& target_class, const double& learningRate, const CostFunction_Type& cost, 
     const double& regularization, const double& momentum, const unsigned& minibatchSize, const bool& softmax,
     const unsigned& maxEpoch) {
 
@@ -246,7 +255,8 @@ void NeuralNetworks::ParametersSetting(const unsigned& N_train, const unsigned& 
     nnParas.N_valid = N_valid;
     nnParas.N_test = N_test;
     nnParas.n_hiddens = n_hiddens;
-    nnParas.n_class = n_class;
+    nnParas.target_class = target_class;
+    nnParas.n_class = nnParas.target_class.size();
     nnParas.n_hlayer = nnParas.n_hiddens.size();
     nnParas.learningRate = learningRate;        
     nnParas.cost = cost;
@@ -323,6 +333,7 @@ unsigned NeuralNetworks::GetDimension() const { return nnParas.dimension; }
 unsigned NeuralNetworks::GetN_valid() const { return nnParas.N_valid; }
 unsigned NeuralNetworks::GetN_test() const { return nnParas.N_test; }
 unsigned NeuralNetworks::GetN_class() const { return nnParas.n_class; }
+arma::ivec NeuralNetworks::GetTargetClass() const { return nnParas.target_class; }
 
 
 void NeuralNetworks::Initialize() {
@@ -732,7 +743,7 @@ void NeuralNetworks::TrainingMiniBatch(df::DataFrame<dataType>& data, const Vect
         //  accuracy estimation
         arma::uword index;
         double max_value = layers(nnParas.n_hlayer).activation.max(index);
-        if ( index != data.GetTarget(minibatch(n)) ) accuracy += 1.;
+        if ( nnParas.target_class(index) != data.GetTarget(minibatch(n)) ) accuracy += 1.;
 
         //  Error Back Propagation
         BackPropagation(x, t.t());
@@ -790,7 +801,7 @@ void NeuralNetworks::Validation(df::DataFrame<dataType>& valid, double& error, d
         //  accuracy estimation
         arma::uword index;
         double max_value = layers(nnParas.n_hlayer).activation.max(index);
-        if ( index != valid.GetTarget(n) ) accuracy += 1.;
+        if ( nnParas.target_class(index) != valid.GetTarget(n) ) accuracy += 1.;
     }
     error /= (double) nnParas.N_valid;
     accuracy /= (double) nnParas.N_valid;
@@ -814,7 +825,7 @@ void NeuralNetworks::Test(df::DataFrame<dataType>& test, double& error, double& 
         //  accuracy estimation
         arma::uword index;
         double max_value = layers(nnParas.n_hlayer).activation.max(index);
-        if ( index != test.GetTarget(n) ) accuracy += 1.;
+        if ( nnParas.target_class(index) != test.GetTarget(n) ) accuracy += 1.;
     }
     error /= (double) nnParas.N_test;
     accuracy /= (double) nnParas.N_test;
