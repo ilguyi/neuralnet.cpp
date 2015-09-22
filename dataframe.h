@@ -2,7 +2,7 @@
  * Data frame for machine learning (NN, RBM, DBN, etc)
  *
  * 2015. 06.
- * modified 2015. 09. 20.
+ * modified 2015. 09. 22.
  * by Il Gu Yi
 ***********************************************************/
 
@@ -17,8 +17,7 @@ namespace df {
 
 
 //  global variable rng for simplicity
-//boost::random::mt19937 rng(time(0));    //  Pick the Random Number Generator method
-boost::random::mt19937 rng(1110);    //  Pick the Random Number Generator method
+boost::random::mt19937 rng(time(0));    //  Pick the Random Number Generator method
 
 
 
