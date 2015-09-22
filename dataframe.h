@@ -17,7 +17,8 @@ namespace df {
 
 
 //  global variable rng for simplicity
-boost::random::mt19937 rng(time(0));    //  Pick the Random Number Generator method
+//boost::random::mt19937 rng(time(0));    //  Pick the Random Number Generator method
+boost::random::mt19937 rng(1110);    //  Pick the Random Number Generator method
 
 
 
@@ -51,7 +52,7 @@ class DataFrame {
         void SetSubset(const arma::Mat<dataType>& data, const arma::ivec& target, const arma::imat targetM, const arma::uvec& validindex);
 
         void SetData(dataType& value, const unsigned& i, const unsigned& j);
-        void SetTargetMatrix(arma::ivec& target_class, const string& shape);
+        void SetTargetMatrix(const arma::ivec& target_class, const string& shape);
 
         arma::Row<dataType> GetDataRow(const unsigned& i) const;
         arma::Col<dataType> GetDataCol(const unsigned& j) const;
@@ -246,7 +247,7 @@ void DataFrame<dataType>::SetSubset(const arma::Mat<dataType>& data, const arma:
 template<typename dataType>
 void DataFrame<dataType>::SetData(dataType& value, const unsigned& i, const unsigned& j) { data(i, j) = value; }
 template<typename dataType>
-void DataFrame<dataType>::SetTargetMatrix(arma::ivec& target_class, const string& shape) {
+void DataFrame<dataType>::SetTargetMatrix(const arma::ivec& target_class, const string& shape) {
     unsigned n_target = target_class.n_rows;
     targetMatrix.set_size(N, n_target);
 
